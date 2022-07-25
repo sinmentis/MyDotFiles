@@ -1,0 +1,4 @@
+#!/bin/bash
+
+xdotool click --clearmodifiers --repeat 2 4 # UP
+#xdotool click 6 # left
