@@ -117,6 +117,9 @@ set t_Co=256
 # Compilation flags
 # export ARCHFLAGS="-arch x86_64"
 
+###################################
+# Productivity                    #
+###################################
 alias zshconfig="mate ~/.zshrc"
 alias ohmyzsh="mate ~/.oh-my-zsh"
 alias work="cd ~/work"
@@ -124,7 +127,7 @@ alias gitk="gitk --all"
 alias gitst="git st"
 eval $(thefuck --alias)
 alias explorer="nautilus ."
-
+alias dmesg="sudo watch -n 0.1 'dmesg | tail -n $((LINES-6))'"
 
 ###################################
 # NVM
