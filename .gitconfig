@@ -1,10 +1,11 @@
 [alias]
-    co = commit
+    co = checkout
+    cm = commit
     sbup = submodule update --init --recursive
     st = status
     ft = fetch
     pu = pull
-    lg = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+  lg = log --max-count=100 --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
 
 [pager]
     diff = delta
@@ -12,20 +13,59 @@
     reflog = delta
     show = delta
 
+# https://github.com/dandavison/delta
 [interactive]
     diffFilter = delta --color-only
-
-# https://github.com/dandavison/delta
+[add.interactive]
+    useBuiltin = false # required for git 2.37.0
 [delta]
-    features = side-by-side line-numbers decorations
+    navigate = true    # use n and N to move between diff sections
+    light = false      # set to true if you're in a terminal w/ a light background color (e.g. the default macOS terminal)
+    features = side-by-side decorations unobtrusive-line-numbers
     whitespace-error-style = 22 reverse
-
 [delta "decorations"]
     commit-decoration-style = bold yellow box ul
     file-style = bold yellow ul
     file-decoration-style = none
+[delta "unobtrusive-line-numbers"]
+    line-numbers = true
+    line-numbers-minus-style = "#444444"
+    line-numbers-zero-style = "#444444"
+    line-numbers-plus-style = "#444444"
+    line-numbers-left-format = "{nm:>4}┊"
+    line-numbers-right-format = "{np:>4}│"
+    line-numbers-left-style = blue
+    line-numbers-right-style = blue
+[delta "decorations"]
+    commit-decoration-style = bold yellow box ul
+    file-style = bold yellow ul
+    file-decoration-style = none
+    hunk-header-decoration-style = yellow box
+[diff]
+    colorMoved = default
 
 [core]
     autocrlf = input
     editor = vim
     ignorecase = false
+    compression = 0
+    packedGitLimit = 8096m
+    packedGitWindowSize = 8096m
+    pager = delta
+
+[pack]
+    deltaCachesSize =  2047m
+    packSzieLimit = 2047m
+    windowMemory = 2047m
+[color]
+    ui = auto
+[http]
+    postBuffer = 1048576000
+    maxRequestBuffer = 300M
+
+[merge]
+    tool = vscode
+[mergetool "vscode"]
+    cmd = code --wait $MERGED
+[http "https://chipmaster2.qti.qualcomm.com"]
+	followRedirects = true
