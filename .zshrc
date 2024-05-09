@@ -6,11 +6,13 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
 fi
 
 # If you come from bash you might have to change your $PATH.
-# export PATH=$HOME/bin:/usr/local/bin:$PATH
+export PATH=$HOME/bin:/usr/local/bin:$PATH
 
-# Path to your oh-my-zsh installation.
+# Paths to your oh-my-zsh installation.
 export ZSH="/home/shun/.oh-my-zsh"
-export PATH=~/bin:$PATH
+export PATH=~/bin/local:$PATH
+export PATH=/usr/share/code/bin:$PATH
+export PATH=/home/shun/.local/bin:$PATH
 
 # Set name of the theme to load --- if set to "random", it will
 # load a random theme each time oh-my-zsh is loaded, in which case,
@@ -84,11 +86,20 @@ plugins=(
 	zsh-autosuggestions
 	history-substring-search
 	fzf
-	thefuck
 	vscode
 	tmux
 	z
+  virtualenv
+  jfrog
+  safe-paste
+  colored-man-pages
+  copyfile
+  copypath
+  history
 )
+
+# Python virtualenv
+POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(status virtualenv)
 
 source $ZSH/oh-my-zsh.sh
 unsetopt BEEP
@@ -128,6 +139,7 @@ alias gitst="git st"
 eval $(thefuck --alias)
 alias explorer="nautilus ."
 alias dmesg="sudo watch -n 0.1 'dmesg | tail -n $((LINES-6))'"
+alias detectMonitor="sudo service sddm restart"
 
 ###################################
 # NVM
@@ -141,3 +153,9 @@ source /etc/zsh_command_not_found
 
 # Bugfix: remove first characters repeate
 export LC_CTYPE=en_US.UTF-8
+
+PATH="/home/shun/perl5/bin${PATH:+:${PATH}}"; export PATH;
+PERL5LIB="/home/shun/perl5/lib/perl5${PERL5LIB:+:${PERL5LIB}}"; export PERL5LIB;
+PERL_LOCAL_LIB_ROOT="/home/shun/perl5${PERL_LOCAL_LIB_ROOT:+:${PERL_LOCAL_LIB_ROOT}}"; export PERL_LOCAL_LIB_ROOT;
+PERL_MB_OPT="--install_base \"/home/shun/perl5\""; export PERL_MB_OPT;
+PERL_MM_OPT="INSTALL_BASE=/home/shun/perl5"; export PERL_MM_OPT;
