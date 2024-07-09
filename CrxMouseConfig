@@ -21,7 +21,7 @@
         "strokegesture": false
     },
     "gesture": {
-        "direct": true,
+        "direct": false,
         "directcolor": "#778899",
         "directopa": 0.9,
         "gesPos": "cc",
@@ -56,33 +56,8 @@
                 "whitelist": []
             },
             {
-                "action": "G_reclosedtab",
-                "direct": "LU",
-                "moreDes": "Reopen closed tab",
-                "morePinned": "unpinned",
-                "morePosition": "chrome",
-                "moreTarget": "newfront",
-                "whitelist": []
-            },
-            {
                 "action": "G_bottom",
-                "direct": "RD",
-                "whitelist": []
-            },
-            {
-                "action": "G_top",
-                "direct": "RU",
-                "whitelist": []
-            },
-            {
-                "action": "G_reload",
-                "direct": "UD",
-                "whitelist": []
-            },
-            {
-                "action": "G_reloadclear",
-                "direct": "UDU",
-                "whitelist": []
+                "direct": "UD"
             },
             {
                 "action": "G_lefttab",
@@ -95,23 +70,17 @@
                 "whitelist": []
             },
             {
-                "action": "G_newwindow",
-                "direct": "DRU",
-                "whitelist": []
-            },
-            {
-                "action": "G_closewindow",
-                "direct": "URD",
-                "whitelist": []
-            },
-            {
-                "action": "G_crxsettings",
-                "direct": "RDLU",
-                "moreDes": "CrxMouse settings",
+                "action": "G_reclosedtab",
+                "direct": "RL",
+                "moreDes": "",
                 "morePinned": "unpinned",
                 "morePosition": "chrome",
                 "moreTarget": "newfront",
                 "whitelist": []
+            },
+            {
+                "direct": "DU",
+                "action": "G_top"
             }
         ],
         "gestureui": true,
@@ -123,13 +92,13 @@
         "strokecolor": "#4E1485",
         "strokeopa": 0.8,
         "strokewidth": 5,
-        "tooltip": true,
+        "tooltip": false,
         "tooltipcolor": "#120310",
         "tooltipopa": 0.9,
         "tooltipwidth": 18
     },
     "drag": {
-        "ddirect": true,
+        "ddirect": false,
         "ddirectcolor": "#778899",
         "ddirectopa": 0.9,
         "dholdkey": "none",
@@ -138,11 +107,11 @@
         "draglink": true,
         "dragtext": true,
         "dragui": true,
-        "dstroke": true,
+        "dstroke": false,
         "dstrokecolor": "#4E1485",
         "dstrokeopa": 0.8,
         "dstrokewidth": 5,
-        "dtooltip": true,
+        "dtooltip": false,
         "dtooltipcolor": "#120310",
         "dtooltipopa": 0.9,
         "dtooltipwidth": 18,
@@ -215,10 +184,6 @@
                 "morePosition": "right",
                 "moreTarget": "newfront",
                 "moreTsearch": "sgoogle"
-            },
-            {
-                "action": "T_copytext",
-                "direct": "D"
             }
         ]
     },
