@@ -15,8 +15,23 @@ oh-my-posh --init --shell pwsh --config $PROMPT_CONFIG | Invoke-Expression
 # PSReadLine
 Set-PSReadLineOption -EditMode Emacs
 Set-PSReadLineOption -BellStyle None
-Set-PSReadLineKeyHandler -Chord 'Ctrl+d' -Function DeleteChar
 Set-PSReadLineOption -PredictionSource History
+Set-PSReadLineOption -HistorySearchCursorMovesToEnd
+Set-PSReadLineKeyHandler -Chord 'Ctrl+d' -Function DeleteChar
+Set-PSReadLineKeyHandler -Key "Tab" -Function MenuComplete
+Set-PSReadLineKeyHandler -Key "Ctrl+z" -Function Undo
+
+Set-PSReadLineOption -Colors @{
+  Command            = 'Green'
+  Number             = 'DarkGray'
+  Member             = 'DarkGray'
+  Operator           = 'DarkGray'
+  Type               = 'DarkGray'
+  Variable           = 'DarkGreen'
+  Parameter          = 'DarkGreen'
+  ContinuationPrompt = 'DarkGray'
+  Default            = 'DarkGray'
+}
 
 # xargs
 filter xargs { ($h,$t) = $args; & $h ($t + " " + $_) }
