@@ -9,10 +9,10 @@ fi
 export PATH=$HOME/bin:/usr/local/bin:$PATH
 
 # Paths to your oh-my-zsh installation.
-export ZSH="/home/shun/.oh-my-zsh"
+export ZSH="$HOME/.oh-my-zsh"
 export PATH=~/bin/local:$PATH
 export PATH=/usr/share/code/bin:$PATH
-export PATH=/home/shun/.local/bin:$PATH
+export PATH=$HOME/.local/bin:$PATH
 
 # Set name of the theme to load --- if set to "random", it will
 # load a random theme each time oh-my-zsh is loaded, in which case,
@@ -90,8 +90,6 @@ plugins=(
 	tmux
 	z
   virtualenv
-  jfrog
-  safe-paste
   colored-man-pages
   copyfile
   copypath
@@ -103,16 +101,8 @@ POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(status virtualenv)
 
 source $ZSH/oh-my-zsh.sh
 unsetopt BEEP
-# User configuration
-# Always work in a tmux session if tmux is installed
-# https://github.com/chrishunt/dot-files/blob/master/.zshrc
-if which tmux 2>&1 >/dev/null; then
-  if [ $TERM != "screen-256color" ] && [  $TERM != "screen" ]; then
-    tmux attach -t hack || tmux new -s hack; exit
-  fi
-fi
-#export MANPATH="/usr/local/man:$MANPATH"
-export TERM=screen-256color
+
+export TERM=xterm-256color
 set background=dark
 set t_Co=256
 # You may need to manually set your language environment
@@ -136,7 +126,6 @@ alias ohmyzsh="mate ~/.oh-my-zsh"
 alias work="cd ~/work"
 alias gitk="gitk --all"
 alias gitst="git st"
-eval $(thefuck --alias)
 alias explorer="nautilus ."
 alias dmesg="sudo watch -n 0.1 'dmesg | tail -n $((LINES-6))'"
 alias detectMonitor="sudo service sddm restart"
@@ -154,8 +143,8 @@ source /etc/zsh_command_not_found
 # Bugfix: remove first characters repeate
 export LC_CTYPE=en_US.UTF-8
 
-PATH="/home/shun/perl5/bin${PATH:+:${PATH}}"; export PATH;
-PERL5LIB="/home/shun/perl5/lib/perl5${PERL5LIB:+:${PERL5LIB}}"; export PERL5LIB;
-PERL_LOCAL_LIB_ROOT="/home/shun/perl5${PERL_LOCAL_LIB_ROOT:+:${PERL_LOCAL_LIB_ROOT}}"; export PERL_LOCAL_LIB_ROOT;
-PERL_MB_OPT="--install_base \"/home/shun/perl5\""; export PERL_MB_OPT;
-PERL_MM_OPT="INSTALL_BASE=/home/shun/perl5"; export PERL_MM_OPT;
+PATH="$HOME/perl5/bin${PATH:+:${PATH}}"; export PATH;
+PERL5LIB="$HOME/perl5/lib/perl5${PERL5LIB:+:${PERL5LIB}}"; export PERL5LIB;
+PERL_LOCAL_LIB_ROOT="$HOME/perl5${PERL_LOCAL_LIB_ROOT:+:${PERL_LOCAL_LIB_ROOT}}"; export PERL_LOCAL_LIB_ROOT;
+PERL_MB_OPT="--install_base \"$HOME/perl5\""; export PERL_MB_OPT;
+PERL_MM_OPT="INSTALL_BASE=$HOME/perl5"; export PERL_MM_OPT;
