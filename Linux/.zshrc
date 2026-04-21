@@ -99,6 +99,21 @@ plugins=(
 # Python virtualenv
 POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(status virtualenv)
 
+# Auto-attach tmux for interactive terminals, with escape hatches:
+#   - export NO_TMUX=1     : disable auto-attach for this shell
+#   - already inside tmux  : skipped (no nesting)
+#   - VS Code terminal     : skipped (keeps AI agents / Copilot out of tmux)
+if [[ -z "$TMUX" && -z "$NO_TMUX" && "$TERM_PROGRAM" != "vscode" && -o interactive ]]; then
+    ZSH_TMUX_AUTOSTART=true
+    ZSH_TMUX_AUTOSTART_ONCE=true
+    ZSH_TMUX_AUTOCONNECT=true
+    ZSH_TMUX_AUTOQUIT=false
+    # Use a named default session so the plugin runs `tmux new-session -A -s main`
+    # (attach-or-create, silent) instead of noisy `tmux attach` which prints
+    # "no sessions" on first launch and trips Powerlevel10k's instant-prompt check.
+    ZSH_TMUX_DEFAULT_SESSION_NAME=main
+fi
+
 source $ZSH/oh-my-zsh.sh
 unsetopt BEEP
 
