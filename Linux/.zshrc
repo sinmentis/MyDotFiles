@@ -1,3 +1,36 @@
+# ============================================================================
+# Auto-attach to tmux session "main" (MUST be before Powerlevel10k instant
+# prompt block so any tmux startup output happens before instant prompt is
+# enabled — avoids the "Console output during zsh initialization" warning).
+#
+# Why `exec`:  replaces the current zsh with tmux client. No outer zsh process
+#              hangs around, so no race on a 2nd shell ("duplicate session").
+# Why manual: oh-my-zsh `tmux` plugin runs AFTER instant prompt is enabled and
+#              has a known race that prints "duplicate session: main" when two
+#              shells launch concurrently — both visible to p10k.
+#
+# Escape hatches (skip tmux):
+#   - NO_TMUX=1 set                          : explicit opt-out
+#   - already inside tmux ($TMUX set)        : no nesting
+#   - non-interactive shell                  : scripts / pipelines
+#   - TERM=dumb / screen* / tmux*            : no terminal caps or nested
+#   - VS Code / Cursor / Copilot CLI shell   : keeps AI agents OUT of tmux
+# ============================================================================
+if command -v tmux >/dev/null 2>&1 \
+   && [[ $- == *i* ]] \
+   && [[ -z "$TMUX" ]] \
+   && [[ -z "$NO_TMUX" ]] \
+   && [[ "$TERM" != "dumb" ]] \
+   && [[ "$TERM" != screen* ]] \
+   && [[ "$TERM" != tmux* ]] \
+   && [[ "$TERM_PROGRAM" != "vscode" ]] \
+   && [[ -z "$VSCODE_INJECTION" ]] \
+   && [[ -z "$VSCODE_GIT_IPC_HANDLE" ]] \
+   && [[ -z "$CURSOR_TRACE_ID" ]] \
+   && [[ -z "$COPILOT_AGENT_SESSION_ID" ]]; then
+    exec tmux new-session -A -s main
+fi
+
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block; everything else may go below.
@@ -87,7 +120,6 @@ plugins=(
 	history-substring-search
 	fzf
 	vscode
-	tmux
 	z
   virtualenv
   colored-man-pages
@@ -98,21 +130,6 @@ plugins=(
 
 # Python virtualenv
 POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(status virtualenv)
-
-# Auto-attach tmux for interactive terminals, with escape hatches:
-#   - export NO_TMUX=1     : disable auto-attach for this shell
-#   - already inside tmux  : skipped (no nesting)
-#   - VS Code terminal     : skipped (keeps AI agents / Copilot out of tmux)
-if [[ -z "$TMUX" && -z "$NO_TMUX" && "$TERM_PROGRAM" != "vscode" && -o interactive ]]; then
-    ZSH_TMUX_AUTOSTART=true
-    ZSH_TMUX_AUTOSTART_ONCE=true
-    ZSH_TMUX_AUTOCONNECT=true
-    ZSH_TMUX_AUTOQUIT=false
-    # Use a named default session so the plugin runs `tmux new-session -A -s main`
-    # (attach-or-create, silent) instead of noisy `tmux attach` which prints
-    # "no sessions" on first launch and trips Powerlevel10k's instant-prompt check.
-    ZSH_TMUX_DEFAULT_SESSION_NAME=main
-fi
 
 source $ZSH/oh-my-zsh.sh
 unsetopt BEEP
@@ -163,3 +180,6 @@ PERL5LIB="$HOME/perl5/lib/perl5${PERL5LIB:+:${PERL5LIB}}"; export PERL5LIB;
 PERL_LOCAL_LIB_ROOT="$HOME/perl5${PERL_LOCAL_LIB_ROOT:+:${PERL_LOCAL_LIB_ROOT}}"; export PERL_LOCAL_LIB_ROOT;
 PERL_MB_OPT="--install_base \"$HOME/perl5\""; export PERL_MB_OPT;
 PERL_MM_OPT="INSTALL_BASE=$HOME/perl5"; export PERL_MM_OPT;
+
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+
