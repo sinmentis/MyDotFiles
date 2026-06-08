@@ -4,8 +4,10 @@
 .gitconfig.local
 .zshrc.local
 
-# Copilot machine-local instruction layer (work/private context)
-copilot/local/
+# Copilot machine-local instruction layer (work/private context).
+# Broad match so a stray Linux/copilot/local/ or .copilot/local/ can't slip in.
+**/copilot/local/
+*.instructions.local.md
 
 # Keyring passphrase (referenced by the WSL keyring block)
 keyring-passphrase

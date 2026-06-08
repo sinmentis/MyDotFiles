@@ -22,10 +22,11 @@ source "$DOTFILES_LINUX_DIR/lib/common.sh"
 ZSH_DIR="$HOME/.oh-my-zsh"
 ZSH_CUSTOM="${ZSH_CUSTOM:-$ZSH_DIR/custom}"
 
-# 1. Packages (git is required by the clones below).
-log "installing zsh, git, fzf..."
+# 1. Packages (git is required by the clones below; curl + ca-certificates by
+#    the Oh My Zsh installer, which may be absent on a minimal fresh image).
+log "installing zsh, git, fzf, curl..."
 sudo apt update
-apt_install zsh git fzf
+apt_install zsh git fzf curl ca-certificates
 
 # 2. Oh My Zsh (unattended; keep our own .zshrc).
 if [ ! -d "$ZSH_DIR" ]; then

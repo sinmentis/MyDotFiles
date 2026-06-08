@@ -44,9 +44,9 @@ you'll be prompted for your password the first time `sudo` is invoked.
 
 1. Reboot if `01-base.sh` upgraded the kernel (it'll tell you).
 2. Re-SSH in. `uptime` should show ~0 minutes if you rebooted.
-3. Proceed to app-layer setup:
-   - `bash ../install_zsh_plugin.sh` — zsh + oh-my-zsh + p10k
-   - `bash ../install_tmux.sh` — tmux config
+3. Provision your shell + tools with the orchestrator:
+   - `cd ~/MyDotFiles && ./install.sh --profile vm`
+     (zsh + oh-my-zsh + p10k, git, tmux without auto-attach, copilot config)
    - Install Tailscale, Docker, Node, etc. (separate scripts / manual).
 
 ## What's intentionally NOT here

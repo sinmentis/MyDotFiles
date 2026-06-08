@@ -20,7 +20,7 @@
 #        - dnsutils          `dig`, `nslookup`
 #        - jq                JSON CLI processor
 #        - tree              directory tree printer
-#        - tmux              terminal multiplexer (used by install_tmux.sh)
+#        - tmux              terminal multiplexer (configured by lib/install_tmux.sh)
 #        - ca-certificates   trusted root CA bundle (needed by curl/git over
 #                            HTTPS on a minimal image)
 #        - gnupg, lsb-release  required by many third-party apt repos

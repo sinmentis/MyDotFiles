@@ -40,7 +40,9 @@ WANT_ZSH=""; WANT_GIT=""; WANT_TMUX=""; WANT_COPILOT=""; WANT_AUTOATTACH=""
 # --- arg parsing --------------------------------------------------------------
 while [ $# -gt 0 ]; do
     case "$1" in
-        --profile) PROFILE="${2:-}"; shift 2 ;;
+        --profile)
+            if [ $# -lt 2 ]; then warn "--profile needs a value (wsl|vm|minimal)"; exit 2; fi
+            PROFILE="$2"; shift 2 ;;
         --profile=*) PROFILE="${1#*=}"; shift ;;
         --zsh)     WANT_ZSH=1; shift ;;
         --no-zsh)  WANT_ZSH=0; shift ;;
