@@ -1,0 +1,34 @@
+# ~/.gitconfig.local — machine-local git config, pulled in by the [include] at
+# the top of the repo .gitconfig. NOT tracked by this repo (gitignored).
+#
+# Put identity + credential helpers here. They differ per machine (work laptop
+# vs personal VM vs WSL) and must never be committed to a public repo.
+#
+# Copy to ~/.gitconfig.local and fill in your own values:
+#   cp Linux/.gitconfig.local.example ~/.gitconfig.local
+
+[user]
+	name = your-name
+	email = you@example.com
+
+[core]
+	# WSL only: lets long Windows paths work.
+	# longpaths = true
+
+# --- Credential helpers -------------------------------------------------------
+# Pick the ones that apply to this machine.
+
+# GitHub via the gh CLI (any OS where gh is installed + logged in):
+# [credential "https://github.com"]
+# 	helper =
+# 	helper = !/usr/bin/gh auth git-credential
+# [credential "https://gist.github.com"]
+# 	helper =
+# 	helper = !/usr/bin/gh auth git-credential
+
+# WSL reusing the Windows Git Credential Manager (Azure DevOps):
+# [credential "https://dev.azure.com"]
+# 	useHttpPath = true
+# 	helper = !"/mnt/c/Program Files/Git/mingw64/bin/git-credential-manager.exe"
+# [credential "https://*.visualstudio.com"]
+# 	helper = !"/mnt/c/Program Files/Git/mingw64/bin/git-credential-manager.exe"

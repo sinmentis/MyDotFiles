@@ -1,0 +1,14 @@
+# Machine-local overrides — never commit these (they hold secrets / employer
+# tooling / per-machine config). Only the *.example templates are tracked.
+*.local
+.gitconfig.local
+.zshrc.local
+
+# Copilot machine-local instruction layer (work/private context)
+copilot/local/
+
+# Keyring passphrase (referenced by the WSL keyring block)
+keyring-passphrase
+
+# Backups created by the install scripts' link_dotfile helper
+*.bak.*

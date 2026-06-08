@@ -1,6 +1,105 @@
 # MyDotFiles
 
+One-shot dotfiles + provisioning for Linux (WSL / cloud VM / bare metal),
+PowerShell, and Chrome.
+
+## Linux: quick start
+
+```bash
+git clone https://github.com/sinmentis/MyDotFiles.git ~/MyDotFiles
+cd ~/MyDotFiles
+./install.sh --profile vm        # see profiles below
+```
+
+`install.sh` installs the selected components (each an idempotent
+`Linux/lib/install_*.sh`) and symlinks the generic dotfiles into `$HOME`.
+
+### Profiles
+
+| profile   | zsh | git | tmux | copilot | tmux auto-attach |
+|-----------|:---:|:---:|:----:|:-------:|:----------------:|
+| `wsl`     |  y  |  y  |  y   |   y     | on               |
+| `vm`      |  y  |  y  |  y   |   y     | off              |
+| `minimal` |  y  |  y  |  -   |   -     | off              |
+
+```bash
+./install.sh --profile wsl       # workstation you live in
+./install.sh --profile vm        # server: tmux available but no auto-attach on SSH login
+./install.sh --profile minimal   # just a usable shell
+
+# granular overrides (combine freely, they win over the profile):
+./install.sh --zsh --git
+./install.sh --profile vm --no-tmux
+./install.sh --profile vm --tmux-autoattach
+```
+
+Run `./install.sh --help` for the full flag list.
+
+### Layering: public base + machine-local overrides
+
+The repo only holds **generic, public-safe** config. Anything secret,
+employer-specific, or per-machine lives in `*.local` files that are gitignored
+and never committed. Templates ship as `*.example`.
+
+| concern | tracked (public)                        | local override (gitignored)            |
+|---------|-----------------------------------------|----------------------------------------|
+| zsh     | `Linux/.zshrc` sources it at top        | `~/.zshrc.local`                       |
+| git     | `Linux/.gitconfig` `[include]`s it      | `~/.gitconfig.local` (identity, creds) |
+| copilot | `Linux/copilot/copilot-instructions.md` | `~/.copilot/local/*.instructions.md`   |
+
+Seed your local files from the examples:
+
+```bash
+cp Linux/.zshrc.local.example     ~/.zshrc.local
+cp Linux/.gitconfig.local.example ~/.gitconfig.local
+# then edit them with your own identity / secrets / tooling
+```
+
+`install.sh` seeds `~/.gitconfig.local` and `~/.zshrc.local` automatically if
+they're missing, so a fresh machine still gets a working git identity and the
+tmux auto-attach flag.
+
+#### tmux auto-attach
+
+The generic `.zshrc` only drops you into tmux on login when
+`DOTFILES_TMUX_AUTOATTACH` is set (done in `~/.zshrc.local`). Servers leave it
+unset, so an SSH login *from* a machine that already runs tmux never nests.
+Re-attach manually with `tmux a` when you want a persistent server session, or
+run long-lived services under systemd instead of tmux.
+
+#### Copilot instruction layering
+
+GitHub Copilot CLI loads `**/*.instructions.md` from every directory listed in
+`COPILOT_CUSTOM_INSTRUCTIONS_DIRS` (comma-separated) and **appends** them onto
+`~/.copilot/copilot-instructions.md`. Keep generic rules in the tracked
+`copilot-instructions.md`; keep work/private context in
+`~/.copilot/local/*.instructions.md` and point the env var there (e.g. from
+`~/.zshenv`).
+
+### First-time VM provisioning (hardening)
+
+For a brand-new cloud VM, run the hardening scripts in `Linux/vm-prep/` once
+before `install.sh` (apt upgrade, unattended-upgrades, ufw, fail2ban, swap,
+timezone). See `Linux/vm-prep/README.md`.
+
+### Repo layout
+
+```
+MyDotFiles/
+|-- install.sh                  # entry point: --profile {vm,wsl,minimal} + flags
+|-- .gitignore                  # hides *.local / secrets / backups
+`-- Linux/
+    |-- .zshrc / .p10k.zsh      # generic zsh
+    |-- .gitconfig              # generic git (includes ~/.gitconfig.local)
+    |-- .tmux.conf
+    |-- *.local.example         # templates for machine-local overrides
+    |-- copilot/                # generic copilot-instructions.md + mcp-config.json
+    |-- lib/                    # idempotent install_*.sh components
+    `-- vm-prep/                # one-time VM hardening scripts
+```
+
 ## PowerShell
+
 1. Install Scoop and tools
 
 ```
@@ -38,4 +137,3 @@ Set-PsFzfOption -PSReadlineChordProvider 'Ctrl+f' -PSReadlineChordReverseHistory
 
 ## Nerd Font
 [Hack Nerd Font](https://github.com/ryanoasis/nerd-fonts/releases/download/v2.1.0/Hack.zip)
-

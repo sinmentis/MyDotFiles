@@ -1,0 +1,28 @@
+# ~/.zshrc.local.example — template for machine-local zsh overrides.
+#
+# Copy to ~/.zshrc.local and edit. The generic .zshrc sources ~/.zshrc.local at
+# the TOP (before the tmux block), so anything that must run early belongs here.
+#
+#   cp Linux/.zshrc.local.example ~/.zshrc.local
+#
+# This file is NOT tracked by the repo (gitignored). Put machine-specific or
+# non-public things here: secrets, employer tooling, private aliases.
+
+# --- tmux auto-attach opt-in --------------------------------------------------
+# The generic .zshrc only exec's into tmux on login when this is set. Set it on
+# workstations you "live in"; leave it unset on servers so an SSH login from a
+# machine that already runs tmux never nests.
+# export DOTFILES_TMUX_AUTOATTACH=1
+
+# --- Example: per-machine PATH / toolchains -----------------------------------
+# export PATH="$HOME/.gobrew/current/bin:$HOME/.gobrew/bin:$PATH"
+
+# --- Example: private aliases -------------------------------------------------
+# alias deploy='ssh me@my-server "cd app && git pull && ./restart.sh"'
+
+# --- Example: cloud CLI account isolation -------------------------------------
+# export AZURE_CONFIG_DIR_PERSONAL="$HOME/.azure-personal"
+# alias az-personal='AZURE_CONFIG_DIR="$AZURE_CONFIG_DIR_PERSONAL" az'
+
+# --- Example: secrets sourced from a file outside the repo --------------------
+# [ -f ~/.secrets.env ] && source ~/.secrets.env

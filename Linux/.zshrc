@@ -1,4 +1,12 @@
 # ============================================================================
+# Machine-local overrides (sourced FIRST so secrets/employer tooling, the tmux
+# auto-attach opt-in, and a keyring daemon can run before anything below —
+# including the tmux exec block). Not tracked by this repo; see
+# .zshrc.local.example for the template.
+# ============================================================================
+[ -f ~/.zshrc.local ] && source ~/.zshrc.local
+
+# ============================================================================
 # Auto-attach to tmux session "main" (MUST be before Powerlevel10k instant
 # prompt block so any tmux startup output happens before instant prompt is
 # enabled — avoids the "Console output during zsh initialization" warning).
@@ -9,7 +17,12 @@
 #              has a known race that prints "duplicate session: main" when two
 #              shells launch concurrently — both visible to p10k.
 #
+# Opt-IN: only auto-attaches when DOTFILES_TMUX_AUTOATTACH is set (done in
+# ~/.zshrc.local on workstations). Servers leave it unset so an SSH login from a
+# machine that already runs tmux never nests.
+#
 # Escape hatches (skip tmux):
+#   - DOTFILES_TMUX_AUTOATTACH unset         : default off (servers)
 #   - NO_TMUX=1 set                          : explicit opt-out
 #   - already inside tmux ($TMUX set)        : no nesting
 #   - non-interactive shell                  : scripts / pipelines
@@ -17,6 +30,7 @@
 #   - VS Code / Cursor / Copilot CLI shell   : keeps AI agents OUT of tmux
 # ============================================================================
 if command -v tmux >/dev/null 2>&1 \
+   && [[ -n "$DOTFILES_TMUX_AUTOATTACH" ]] \
    && [[ $- == *i* ]] \
    && [[ -z "$TMUX" ]] \
    && [[ -z "$NO_TMUX" ]] \

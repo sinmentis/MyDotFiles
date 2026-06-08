@@ -1,3 +1,8 @@
+# Machine-local git config: identity + credential helpers live here, outside
+# this public repo. See .gitconfig.local.example for the template.
+[include]
+	path = ~/.gitconfig.local
+
 [alias]
 	co = checkout
 	cm = commit
@@ -86,3 +91,6 @@
 	conflictStyle = zdiff3
 [mergetool "vscode"]
 	cmd = code --wait $MERGED
+
+[safe]
+	bareRepository = all
