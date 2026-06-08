@@ -2,6 +2,12 @@
 # see /usr/share/doc/bash/examples/startup-files (in the package bash-doc)
 # for examples
 
+# Machine-local overrides (PATH/toolchains, secrets, the bash->zsh opt-in).
+# Sourced BEFORE the non-interactive early-return below so things like a Go
+# toolchain on PATH are also visible to non-interactive bash (VS Code Server,
+# `ssh host cmd`, etc). Not tracked by this repo; see .bashrc.local.example.
+[ -f ~/.bashrc.local ] && source ~/.bashrc.local
+
 # If not running interactively, don't do anything
 case $- in
     *i*) ;;
@@ -116,7 +122,19 @@ if ! shopt -oq posix; then
   fi
 fi
 
-if [[ $- == *i* ]]; then
-    export SHELL=zsh
+# Optional: hand off an interactive bash to zsh.
+#
+# OFF by default. The proper way to make zsh your shell is
+# `chsh -s $(command -v zsh)` (lib/install_zsh.sh does this), so your login
+# shell is already zsh and running `bash` still gives you a real bash.
+#
+# Only enable this where you can't chsh: set DOTFILES_BASH_TO_ZSH=1 in
+# ~/.bashrc.local. The guards make it safe — it won't fire if zsh is missing
+# or if we're somehow already inside zsh, so you can't get locked out.
+if [[ $- == *i* ]] \
+   && [[ -n "$DOTFILES_BASH_TO_ZSH" ]] \
+   && [[ -z "$ZSH_VERSION" ]] \
+   && command -v zsh >/dev/null 2>&1; then
+    export SHELL="$(command -v zsh)"
     exec zsh -l
 fi

@@ -1,0 +1,22 @@
+# ~/.bashrc.local.example — template for machine-local bash overrides.
+#
+# Copy to ~/.bashrc.local and edit. The generic .bashrc sources it at the TOP,
+# before the non-interactive early-return, so PATH/toolchain changes here are
+# visible to non-interactive bash too (VS Code Server, `ssh host cmd`).
+#
+#   cp Linux/.bashrc.local.example ~/.bashrc.local
+#
+# Not tracked by the repo (gitignored). Put machine-specific or non-public
+# things here.
+
+# --- Optional: hand off interactive bash to zsh -------------------------------
+# Only needed on machines where you can't run `chsh -s $(command -v zsh)`.
+# Normally leave this unset and let chsh make zsh your login shell.
+# export DOTFILES_BASH_TO_ZSH=1
+
+# --- Example: per-machine PATH / toolchains -----------------------------------
+# export PATH="$HOME/.gobrew/current/bin:$HOME/.gobrew/bin:$PATH"
+# export GOPATH="$HOME/.gobrew/current/go"
+
+# --- Example: secrets sourced from a file outside the repo --------------------
+# [ -f ~/.secrets.env ] && source ~/.secrets.env
