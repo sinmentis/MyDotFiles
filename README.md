@@ -46,6 +46,7 @@ and never committed. Templates ship as `*.example`.
 | zsh     | `Linux/.zshrc` sources it at top        | `~/.zshrc.local`                       |
 | git     | `Linux/.gitconfig` `[include]`s it      | `~/.gitconfig.local` (identity, creds) |
 | copilot | `Linux/copilot/copilot-instructions.md` | `~/.copilot/local/*.instructions.md`   |
+| copilot skills | `Linux/copilot/skills/`           | n/a — skills are public-safe by design |
 
 Seed your local files from the examples:
 
@@ -76,6 +77,14 @@ GitHub Copilot CLI loads `**/*.instructions.md` from every directory listed in
 `~/.copilot/local/*.instructions.md` and point the env var there (e.g. from
 `~/.zshenv`).
 
+#### Personal Copilot skills
+
+`Linux/copilot/skills/` holds personal GitHub Copilot CLI skills (one
+subdirectory per skill, each with a `SKILL.md`). `install_copilot.sh`
+symlinks the whole directory to `~/.copilot/skills`, so any skill added here
+is picked up on the next `install.sh --copilot` (or `--profile wsl|vm`) run.
+Add a new skill by creating `Linux/copilot/skills/<name>/SKILL.md`.
+
 ### First-time VM provisioning (hardening)
 
 For a brand-new cloud VM, run the hardening scripts in `Linux/vm-prep/` once
@@ -93,7 +102,7 @@ MyDotFiles/
     |-- .gitconfig              # generic git (includes ~/.gitconfig.local)
     |-- .tmux.conf
     |-- *.local.example         # templates for machine-local overrides
-    |-- copilot/                # generic copilot-instructions.md + mcp-config.json
+    |-- copilot/                # copilot-instructions.md + mcp-config.json + skills/
     |-- lib/                    # idempotent install_*.sh components
     `-- vm-prep/                # one-time VM hardening scripts
 ```

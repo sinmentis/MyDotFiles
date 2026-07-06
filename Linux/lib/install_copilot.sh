@@ -2,9 +2,10 @@
 #
 # install_copilot.sh — deploy generic GitHub Copilot CLI config into ~/.copilot.
 #
-# Symlinks the repo's generic copilot-instructions.md + mcp-config.json into
-# ~/.copilot (backing up any existing real files). Machine-local, non-public
-# instruction files (e.g. work context) are NOT managed here — keep those in
+# Symlinks the repo's generic copilot-instructions.md + mcp-config.json, and
+# the personal skills/ directory, into ~/.copilot (backing up any existing
+# real files/dirs). Machine-local, non-public instruction files (e.g. work
+# context) are NOT managed here — keep those in
 # ~/.copilot/local/*.instructions.md and load them via the
 # COPILOT_CUSTOM_INSTRUCTIONS_DIRS env var (see .zshenv / .zshrc.local).
 #
@@ -24,5 +25,9 @@ link_dotfile "$DOTFILES_LINUX_DIR/copilot/copilot-instructions.md" \
              "$COPILOT_DIR/copilot-instructions.md"
 link_dotfile "$DOTFILES_LINUX_DIR/copilot/mcp-config.json" \
              "$COPILOT_DIR/mcp-config.json"
+
+log "linking personal skills..."
+link_dotfile "$DOTFILES_LINUX_DIR/copilot/skills" \
+             "$COPILOT_DIR/skills"
 
 log "done. Machine-local instructions stay in ~/.copilot/local (not managed here)."
