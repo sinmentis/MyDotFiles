@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "hooks": {
+    "agentStop": [
+      {
+        "type": "command",
+        "bash": "if [ -n \"$TMUX\" ]; then printf '\\007' > /dev/tty; fi",
+        "timeoutSec": 2
+      }
+    ],
+    "notification": [
+      {
+        "type": "command",
+        "matcher": "permission_prompt|elicitation_dialog",
+        "bash": "if [ -n \"$TMUX\" ]; then printf '\\007' > /dev/tty; fi",
+        "timeoutSec": 2
+      }
+    ]
+  }
+}

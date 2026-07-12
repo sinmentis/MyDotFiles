@@ -47,6 +47,7 @@ and never committed. Templates ship as `*.example`.
 | git     | `Linux/.gitconfig` `[include]`s it      | `~/.gitconfig.local` (identity, creds) |
 | copilot | `Linux/copilot/copilot-instructions.md` | `~/.copilot/local/*.instructions.md`   |
 | copilot skills | `Linux/copilot/skills/`           | n/a — skills are public-safe by design |
+| copilot hooks | `Linux/copilot/hooks/` | n/a — generic user hooks are public-safe |
 
 Seed your local files from the examples:
 
@@ -85,6 +86,17 @@ symlinks the whole directory to `~/.copilot/skills`, so any skill added here
 is picked up on the next `install.sh --copilot` (or `--profile wsl|vm`) run.
 Add a new skill by creating `Linux/copilot/skills/<name>/SKILL.md`.
 
+#### Copilot CLI tmux alerts
+
+`Linux/copilot/hooks/tmux-alerts.json` emits a terminal bell when the main
+Copilot agent finishes a turn or requests permission or additional input.
+tmux monitors that bell and highlights the originating background window until
+you select it. `install_copilot.sh` links the tracked hooks directory to
+`~/.copilot/hooks`.
+
+Copilot CLI loads hook configuration at startup, so restart existing sessions
+after changing hooks.
+
 ### First-time VM provisioning (hardening)
 
 For a brand-new cloud VM, run the hardening scripts in `Linux/vm-prep/` once
@@ -102,7 +114,7 @@ MyDotFiles/
     |-- .gitconfig              # generic git (includes ~/.gitconfig.local)
     |-- .tmux.conf
     |-- *.local.example         # templates for machine-local overrides
-    |-- copilot/                # copilot-instructions.md + mcp-config.json + skills/
+    |-- copilot/                # instructions + MCP config + skills/ + hooks/
     |-- lib/                    # idempotent install_*.sh components
     `-- vm-prep/                # one-time VM hardening scripts
 ```
