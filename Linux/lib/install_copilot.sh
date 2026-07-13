@@ -34,4 +34,7 @@ log "linking Copilot hooks..."
 link_dotfile "$DOTFILES_LINUX_DIR/copilot/hooks" \
              "$COPILOT_DIR/hooks"
 
+log "applying WSL clipboard (/copy) fix if needed..."
+bash "$DOTFILES_LINUX_DIR/lib/patch_copilot_clipboard.sh"
+
 log "done. Restart Copilot CLI to load hook changes; machine-local instructions stay in ~/.copilot/local."
