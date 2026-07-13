@@ -72,6 +72,15 @@ project.
   dive in", "It's important to note that…", headings on tiny notes, and
   exhaustive caveats. Don't restate the question, don't announce structure
   ("Here are three points…"), just say the thing.
+- **Default voice (preferred).** This is my go-to style for any comment,
+  message, or email you draft: plain and conversational, accurate, and only
+  the point — no extra info, no setup, no wrap-up. Keep it clean and short.
+  Lead with the answer, then one or two sentences of why if needed, and stop.
+  Reference example I liked (a PR reply): "Yeah that's the PR gate. On every
+  push it builds the TL VHD from my branch and runs the e2e against that build
+  — both green. The only red is the standalone pipeline; it looks for images
+  already on main, so it can't find a brand-new SKU yet. Not a blocker, goes
+  green once the SKU ships to main."
 - **Punctuation and formatting.** Cut down on em-dashes, en-dashes, and
   mid-sentence colons used to introduce explanations. Prefer ordinary commas and
   periods; two short sentences usually beat one stitched together with a dash or
