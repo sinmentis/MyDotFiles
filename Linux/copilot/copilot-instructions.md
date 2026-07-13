@@ -40,11 +40,8 @@ project.
 
 ## Working on code
 
-- **Plan before non-trivial work.** For changes spanning multiple files or
-  unfamiliar code, explore first and write a short plan, then implement against
-  it. Skip the plan when the diff fits in one sentence.
 - **Surgical edits, no drive-by changes.** Change only what the task requires.
-  No unsolicited refactors, renames, reformatting, or cleanup of untouched code.
+- No unsolicited refactors, renames, reformatting, or cleanup of untouched code.
 - **No new dependencies without asking.** Prefer the standard library and
   packages already used in the repo. Ask before adding a new dependency.
 - **Verify before claiming done.** After a code change, run the build, the
@@ -113,11 +110,11 @@ project.
 
 - **Sub-agents always run on the best available model.** Whenever you dispatch
   a sub-agent / Task, set the model override to the strongest model on offer
-  (currently `claude-opus-4.8`). Never let a sub-agent silently fall back to a
+  (currently `claude-sonnet-5`). Never let a sub-agent silently fall back to a
   cheaper or default model.
-- **Rubber-duck reviews always run on `gpt-5.5`.** This is a deliberate
+- **Rubber-duck reviews always run on `gpt-5.6 Sol`.** This is a deliberate
   exception to the rule above: a rubber-duck reviewing a plan or implementation
-  must use `gpt-5.5`. Using a different model family on purpose makes the review
+  must use `gpt-5.6 Sol`. Using a different model family on purpose makes the review
   an independent second opinion instead of the same model checking its own work.
 
 ## Explanation style (audience: me)
