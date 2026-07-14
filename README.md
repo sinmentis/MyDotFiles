@@ -46,7 +46,7 @@ and never committed. Templates ship as `*.example`.
 | zsh     | `Linux/.zshrc` sources it at top        | `~/.zshrc.local`                       |
 | git     | `Linux/.gitconfig` `[include]`s it      | `~/.gitconfig.local` (identity, creds) |
 | copilot | `Linux/copilot/copilot-instructions.md` | `~/.copilot/local/*.instructions.md`   |
-| copilot skills | `Linux/copilot/skills/`           | n/a — skills are public-safe by design |
+| copilot skills | `skills/`                          | n/a — skills are public-safe by design |
 | copilot hooks | `Linux/copilot/hooks/` | n/a — generic user hooks are public-safe |
 
 Seed your local files from the examples:
@@ -78,13 +78,53 @@ GitHub Copilot CLI loads `**/*.instructions.md` from every directory listed in
 `~/.copilot/local/*.instructions.md` and point the env var there (e.g. from
 `~/.zshenv`).
 
-#### Personal Copilot skills
+#### Personal Copilot plugin marketplace
 
-`Linux/copilot/skills/` holds personal GitHub Copilot CLI skills (one
-subdirectory per skill, each with a `SKILL.md`). `install_copilot.sh`
-symlinks the whole directory to `~/.copilot/skills`, so any skill added here
-is picked up on the next `install.sh --copilot` (or `--profile wsl|vm`) run.
-Add a new skill by creating `Linux/copilot/skills/<name>/SKILL.md`.
+The repository root is a versioned Copilot CLI plugin:
+
+```text
+plugin.json                         # sinmentis-skills manifest
+.github/plugin/marketplace.json     # sinmentis-marketplace catalog
+skills/<name>/SKILL.md              # one directory per skill
+```
+
+Install it from GitHub:
+
+```bash
+copilot plugin marketplace add sinmentis/MyDotFiles
+copilot plugin install sinmentis-skills@sinmentis-marketplace
+```
+
+Update it after a new release:
+
+```bash
+copilot plugin marketplace update sinmentis-marketplace
+copilot plugin update sinmentis-skills@sinmentis-marketplace
+```
+
+For a local clone, `install_copilot.sh` registers the clone as a development
+marketplace and reinstalls the cached plugin. Add a skill under
+`skills/<name>/SKILL.md`, validate it, then reinstall:
+
+```bash
+node scripts/validate-plugin.js
+copilot plugin install sinmentis-skills@sinmentis-marketplace
+```
+
+The installer preserves an existing real `~/.copilot/mcp-config.json`, so
+machine-local MCP servers are not replaced by the tracked generic config.
+
+Release a new version by updating `CHANGELOG.md`, then synchronizing the plugin
+and marketplace manifests:
+
+```bash
+node scripts/set-plugin-version.js 0.2.0
+node scripts/validate-plugin.js
+git add plugin.json .github/plugin/marketplace.json CHANGELOG.md
+git commit -m "chore(plugin): release v0.2.0"
+git tag v0.2.0
+git push origin main v0.2.0
+```
 
 #### Copilot CLI tmux alerts
 
@@ -109,14 +149,17 @@ timezone). See `Linux/vm-prep/README.md`.
 MyDotFiles/
 |-- install.sh                  # entry point: --profile {vm,wsl,minimal} + flags
 |-- .gitignore                  # hides *.local / secrets / backups
-`-- Linux/
-    |-- .zshrc / .p10k.zsh      # generic zsh
-    |-- .gitconfig              # generic git (includes ~/.gitconfig.local)
-    |-- .tmux.conf
-    |-- *.local.example         # templates for machine-local overrides
-    |-- copilot/                # instructions + MCP config + skills/ + hooks/
-    |-- lib/                    # idempotent install_*.sh components
-    `-- vm-prep/                # one-time VM hardening scripts
+|-- Linux/
+|   |-- .zshrc / .p10k.zsh      # generic zsh
+|   |-- .gitconfig              # generic git (includes ~/.gitconfig.local)
+|   |-- .tmux.conf
+|   |-- *.local.example         # templates for machine-local overrides
+|   |-- copilot/                # instructions + MCP config + hooks/
+|   |-- lib/                    # idempotent install_*.sh components
+|   `-- vm-prep/                # one-time VM hardening scripts
+|-- plugin.json                 # Copilot plugin manifest
+|-- skills/                     # root-level personal Copilot skills
+`-- .github/plugin/marketplace.json
 ```
 
 ## PowerShell

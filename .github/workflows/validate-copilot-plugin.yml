@@ -1,0 +1,27 @@
+name: Validate Copilot plugin
+
+on:
+  pull_request:
+    paths:
+      - ".github/plugin/**"
+      - ".github/workflows/validate-copilot-plugin.yml"
+      - "plugin.json"
+      - "scripts/**"
+      - "skills/**"
+  push:
+    paths:
+      - ".github/plugin/**"
+      - ".github/workflows/validate-copilot-plugin.yml"
+      - "plugin.json"
+      - "scripts/**"
+      - "skills/**"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: node scripts/validate-plugin.js

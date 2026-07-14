@@ -8,6 +8,7 @@
 # Broad match so a stray Linux/copilot/local/ or .copilot/local/ can't slip in.
 **/copilot/local/
 *.instructions.local.md
+.copilot-memory.md
 
 # Keyring passphrase (referenced by the WSL keyring block)
 keyring-passphrase

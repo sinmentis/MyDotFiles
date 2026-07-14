@@ -1,0 +1,18 @@
+{
+  "name": "sinmentis-skills",
+  "description": "A growing collection of focused personal skills for GitHub Copilot CLI.",
+  "version": "0.1.0",
+  "author": {
+    "name": "sinmentis",
+    "url": "https://github.com/sinmentis"
+  },
+  "homepage": "https://github.com/sinmentis/MyDotFiles",
+  "repository": "https://github.com/sinmentis/MyDotFiles",
+  "keywords": [
+    "copilot",
+    "skills",
+    "ui-design"
+  ],
+  "category": "Developer Tools",
+  "skills": "skills/"
+}

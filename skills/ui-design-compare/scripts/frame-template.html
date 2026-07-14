@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UI Design Compare</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --canvas: #f1f0ec;
+      --surface: #fbfaf7;
+      --surface-strong: #ffffff;
+      --ink: #1d1d1b;
+      --muted: #706f69;
+      --line: #d6d3ca;
+      --accent: #285f52;
+      --accent-soft: #dceae5;
+      --danger: #a54235;
+      --shadow: 0 20px 50px rgba(41, 38, 30, 0.09);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --canvas: #171816;
+        --surface: #20221f;
+        --surface-strong: #282b27;
+        --ink: #f3f1e9;
+        --muted: #aaa99f;
+        --line: #3b3e38;
+        --accent: #83c3b2;
+        --accent-soft: #243c35;
+        --danger: #ef9486;
+        --shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      min-height: 100%;
+      background: var(--canvas);
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 15% 0%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 32rem),
+        var(--canvas);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+
+    button, input { font: inherit; }
+
+    .companion-bar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      min-height: 44px;
+      padding: 0.55rem clamp(1rem, 3vw, 2.5rem);
+      border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--surface) 88%, transparent);
+      backdrop-filter: blur(18px);
+    }
+
+    .companion-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .companion-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+
+    .companion-status::before {
+      width: 0.5rem;
+      height: 0.5rem;
+      border-radius: 50%;
+      background: var(--accent);
+      content: "";
+    }
+
+    .companion-status[data-state="waiting"]::before { background: #c38c30; }
+    .companion-status[data-state="error"]::before { background: var(--danger); }
+
+    main {
+      width: min(1500px, 100%);
+      margin: 0 auto;
+      padding: clamp(1.25rem, 4vw, 4rem);
+    }
+
+    .screen-intro {
+      max-width: 760px;
+      margin-bottom: clamp(1.5rem, 4vw, 3rem);
+    }
+
+    .eyebrow, .tag {
+      color: var(--accent);
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+
+    h1 {
+      max-width: 15ch;
+      margin-bottom: 0.8rem;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(2.2rem, 5vw, 5rem);
+      font-weight: 500;
+      letter-spacing: -0.045em;
+      line-height: 0.98;
+    }
+
+    h2 { margin-bottom: 0.25rem; font-size: 1.05rem; }
+    p { color: var(--muted); }
+
+    .compare-grid, .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+      gap: clamp(1rem, 2vw, 1.5rem);
+      align-items: start;
+    }
+
+    .options {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .options > [data-choice] {
+      padding: 1rem;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface);
+      cursor: pointer;
+    }
+
+    .options > [data-choice].selected {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    .option-card {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    .option-card:hover {
+      transform: translateY(-3px);
+      border-color: color-mix(in srgb, var(--accent) 65%, var(--line));
+    }
+
+    .option-card:focus-visible {
+      outline: 3px solid var(--accent);
+      outline-offset: 3px;
+    }
+
+    [data-choice]:focus-visible {
+      outline: 3px solid var(--accent);
+      outline-offset: 3px;
+    }
+
+    .option-card.selected {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow);
+    }
+
+    .option-heading {
+      display: flex;
+      gap: 0.85rem;
+      align-items: flex-start;
+      padding: 1rem 1.1rem;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface-strong);
+    }
+
+    .option-heading p { margin-bottom: 0; font-size: 0.82rem; }
+
+    .choice {
+      display: grid;
+      flex: 0 0 auto;
+      width: 1.8rem;
+      height: 1.8rem;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+
+    .selected .choice {
+      background: var(--accent);
+      color: var(--surface-strong);
+    }
+
+    .preview {
+      min-height: 320px;
+      padding: clamp(0.75rem, 2vw, 1.25rem);
+      background: color-mix(in srgb, var(--canvas) 65%, var(--surface));
+    }
+
+    .browser-frame {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface-strong);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
+    }
+
+    .browser-chrome {
+      display: flex;
+      gap: 0.35rem;
+      padding: 0.55rem 0.7rem;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface);
+    }
+
+    .browser-chrome span {
+      width: 0.55rem;
+      height: 0.55rem;
+      border-radius: 50%;
+      background: var(--line);
+    }
+
+    .browser-body { min-height: 270px; }
+
+    .phone-frame {
+      width: min(250px, 80%);
+      min-height: 470px;
+      margin: 0 auto;
+      overflow: hidden;
+      border: 7px solid #171816;
+      border-radius: 32px;
+      background: var(--surface-strong);
+      box-shadow: 0 18px 38px rgba(0, 0, 0, 0.22);
+    }
+
+    .phone-island {
+      width: 34%;
+      height: 17px;
+      margin: 7px auto 4px;
+      border-radius: 999px;
+      background: #171816;
+    }
+
+    .phone-body { min-height: 430px; }
+
+    .mock-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface-strong);
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .mock-sidebar {
+      width: 32%;
+      min-width: 110px;
+      padding: 1rem;
+      border-right: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+
+    .mock-content { flex: 1; padding: 1rem; }
+
+    .mock-button {
+      display: inline-flex;
+      min-height: 36px;
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem 0.85rem;
+      border: 0;
+      border-radius: 8px;
+      background: var(--accent);
+      color: var(--surface-strong);
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .mock-input {
+      width: 100%;
+      min-height: 38px;
+      padding: 0.55rem 0.7rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-strong);
+      color: var(--ink);
+    }
+
+    .swatches { display: flex; flex-wrap: wrap; gap: 0.55rem; }
+
+    .swatch {
+      width: 2.5rem;
+      height: 2.5rem;
+      border: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+      border-radius: 50%;
+      box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.18);
+    }
+
+    .tag {
+      display: inline-flex;
+      padding: 0.3rem 0.55rem;
+      border-radius: 999px;
+      background: var(--accent-soft);
+    }
+
+    .callout {
+      padding: 1rem;
+      border-left: 3px solid var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .split, .pros-cons {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    @media (max-width: 760px) {
+      main { padding: 1rem; }
+      .companion-bar { padding-inline: 1rem; }
+      .split, .pros-cons { grid-template-columns: 1fr; }
+      .preview { min-height: 260px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="companion-bar">
+    <span class="companion-title">UI Design Compare</span>
+    <span class="companion-status" data-connection-status data-state="live">Live</span>
+  </div>
+  <main>
+    <!-- CONTENT -->
+  </main>
+</body>
+</html>
