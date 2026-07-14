@@ -1,5 +1,5 @@
 {
-  "name": "sinmentis-marketplace",
+  "name": "sinmentis",
   "owner": {
     "name": "sinmentis"
   },
@@ -9,7 +9,7 @@
   },
   "plugins": [
     {
-      "name": "sinmentis-skills",
+      "name": "shunbox",
       "description": "A growing collection of focused personal skills for GitHub Copilot CLI.",
       "version": "0.1.0",
       "source": ".",

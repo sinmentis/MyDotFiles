@@ -83,8 +83,8 @@ GitHub Copilot CLI loads `**/*.instructions.md` from every directory listed in
 The repository root is a versioned Copilot CLI plugin:
 
 ```text
-plugin.json                         # sinmentis-skills manifest
-.github/plugin/marketplace.json     # sinmentis-marketplace catalog
+plugin.json                         # shunbox manifest
+.github/plugin/marketplace.json     # sinmentis catalog
 skills/<name>/SKILL.md              # one directory per skill
 ```
 
@@ -92,14 +92,14 @@ Install it from GitHub:
 
 ```bash
 copilot plugin marketplace add sinmentis/MyDotFiles
-copilot plugin install sinmentis-skills@sinmentis-marketplace
+copilot plugin install shunbox@sinmentis
 ```
 
 Update it after a new release:
 
 ```bash
-copilot plugin marketplace update sinmentis-marketplace
-copilot plugin update sinmentis-skills@sinmentis-marketplace
+copilot plugin marketplace update sinmentis
+copilot plugin update shunbox@sinmentis
 ```
 
 For a local clone, `install_copilot.sh` registers the clone as a development
@@ -108,7 +108,7 @@ marketplace and reinstalls the cached plugin. Add a skill under
 
 ```bash
 node scripts/validate-plugin.js
-copilot plugin install sinmentis-skills@sinmentis-marketplace
+copilot plugin install shunbox@sinmentis
 ```
 
 The installer preserves an existing real `~/.copilot/mcp-config.json`, so

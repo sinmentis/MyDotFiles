@@ -43,17 +43,29 @@ if command -v copilot >/dev/null 2>&1; then
         esac
     fi
 
+    plugin_listing="$(copilot plugin list 2>&1)"
+    if grep -Fq "sinmentis-skills@sinmentis-marketplace " <<<"$plugin_listing"; then
+        copilot plugin uninstall sinmentis-skills@sinmentis-marketplace >/dev/null
+        log "removed legacy sinmentis-skills@sinmentis-marketplace plugin"
+    fi
+
     marketplace_listing="$(copilot plugin marketplace list 2>&1)"
-    if grep -Fq "sinmentis-marketplace (Local: $DOTFILES_ROOT)" <<<"$marketplace_listing"; then
-        copilot plugin marketplace update sinmentis-marketplace >/dev/null
-    elif grep -Fq "sinmentis-marketplace (" <<<"$marketplace_listing"; then
+    if grep -Fq "sinmentis-marketplace (" <<<"$marketplace_listing"; then
         copilot plugin marketplace remove sinmentis-marketplace >/dev/null
+        log "removed legacy sinmentis-marketplace"
+        marketplace_listing="$(copilot plugin marketplace list 2>&1)"
+    fi
+
+    if grep -Fq "sinmentis (Local: $DOTFILES_ROOT)" <<<"$marketplace_listing"; then
+        copilot plugin marketplace update sinmentis >/dev/null
+    elif grep -Fq "sinmentis (" <<<"$marketplace_listing"; then
+        copilot plugin marketplace remove sinmentis >/dev/null
         copilot plugin marketplace add "$DOTFILES_ROOT" >/dev/null
     else
         copilot plugin marketplace add "$DOTFILES_ROOT" >/dev/null
     fi
-    copilot plugin install sinmentis-skills@sinmentis-marketplace >/dev/null
-    log "installed sinmentis-skills@sinmentis-marketplace"
+    copilot plugin install shunbox@sinmentis >/dev/null
+    log "installed shunbox@sinmentis"
 else
     warn "copilot is not installed; skipping personal plugin installation"
 fi

@@ -41,7 +41,7 @@ const marketplacePlugin = marketplace.plugins?.find((entry) => entry.name === pl
 assert(/^[a-z0-9-]+$/.test(plugin.name), 'plugin.json name must be kebab-case');
 assert(plugin.version, 'plugin.json version is required');
 assert(plugin.skills === 'skills/', 'plugin.json must point skills to skills/');
-assert(marketplace.name === 'sinmentis-marketplace', 'unexpected marketplace name');
+assert(marketplace.name === 'sinmentis', 'unexpected marketplace name');
 assert(marketplacePlugin, `marketplace entry missing for ${plugin.name}`);
 assert(marketplacePlugin.source === '.', 'marketplace plugin source must be the repository root');
 assert(marketplacePlugin.version === plugin.version, 'plugin and marketplace versions differ');
