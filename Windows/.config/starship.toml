@@ -7,9 +7,7 @@
 # ### Variant 2 with background: two line prompt, with background in top line, separators on left side
 # - This preset is inspired by a [powerlevel10k](https://github.com/romkatv/powerlevel10k) configuration variant.
 #
-# - Recommended / tested with Font 'MesloLGS NF Regular' from: Meslo Nerd Font patched for Powerlevel10k
-#   Link: https://github.com/romkatv/powerlevel10k?tab=readme-ov-file#manual-font-installation
-#         --> "Manual font installation", with currently 4 Font Types
+# - The Windows bootstrap installs JetBrains Mono Nerd Font.
 
 # - If you do not want the filling solid line in top row:
 #   set the fill symbol to ' '
@@ -40,7 +38,6 @@ $python\
 $git_branch$git_commit$git_state$git_metrics$git_status\
 [ ](fg:#252525)\
 $fill\
-$fill\
 [ ](fg:#252525)\
 $status\
 $jobs\
@@ -54,8 +51,7 @@ $line_break\
 [$character]($style)"""
 
 # move the rest of the prompt to the right
-right_format = """
-[$localip]($style)"""
+right_format = "$localip"
 
 # Inserts a blank line between shell prompts:
 add_newline = true
@@ -174,7 +170,7 @@ disabled = false
 
 [php]
 format = "[[ \u3009](fg:#7a86b8 bg:#252525)[$symbol](fg:#7a86b8 italic bg:#252525)($version )]($style)"
-style = 'fg:#7a86b8 bg:#252525)'
+style = 'fg:#7a86b8 bg:#252525'
 symbol = "php " # \ue73d  # 󰌟
 
 [python]

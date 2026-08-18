@@ -1,0 +1,12 @@
+{
+  "profiles": [
+    {
+      "commandline": "pwsh.exe -NoExit -Command \"copilot\"",
+      "guid": "{b1a4d2c8-6f3e-4a7b-9e2d-1c8f5a3b7d91}",
+      "hidden": false,
+      "name": "GitHub Copilot",
+      "startingDirectory": "%USERPROFILE%",
+      "tabTitle": "Copilot"
+    }
+  ]
+}

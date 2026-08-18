@@ -1,0 +1,11 @@
+# Machine-local Git identity and optional credential settings.
+# This file is copied to ~/.gitconfig.local only when that file is missing.
+#
+# Add your identity before committing:
+#
+# [user]
+#     name = Your Name
+#     email = you@example.com
+#
+# Git for Windows installs Git Credential Manager. After authenticating GitHub,
+# run `gh auth setup-git` to configure it for your account.
