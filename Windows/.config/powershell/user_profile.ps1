@@ -1,143 +1,154 @@
-# ------------------------------------------------------------------
-#  PowerShell 7 profile – minimal zsh-like experience
-# ------------------------------------------------------------------
+# PowerShell 7 profile managed by MyDotFiles.
 
-# ---------- Modules ----------
-Import-Module -Name Terminal-Icons
-Import-Module -Name PSReadLine
-Import-Module -Name PSFzf
-Import-Module -Name posh-git
+$utf8NoBom = [Text.UTF8Encoding]::new($false)
+[Console]::InputEncoding = $utf8NoBom
+[Console]::OutputEncoding = $utf8NoBom
+$OutputEncoding = $utf8NoBom
 
-# ---------- Prompt ----------
-Invoke-Expression (&starship init powershell)
-Invoke-Expression (& { (zoxide init powershell | Out-String) })
-
-# ---------- PSReadLine ----------
-Set-PSReadLineOption -EditMode Emacs
-Set-PSReadLineOption -BellStyle None
-Set-PSReadLineOption -PredictionSource History
-Set-PSReadLineOption -PredictionViewStyle InlineView
-Set-PSReadLineOption -Colors @{
-    Command          = 'Green'
-    Keyword          = 'Yellow'
-    Operator         = 'Magenta'
-    Variable         = 'Blue'
-    Parameter        = 'Cyan'
-    InlinePrediction = 'DarkGray'
+$modules = @('PSReadLine', 'PSFzf', 'Terminal-Icons', 'posh-git')
+foreach ($module in $modules) {
+    if (Get-Module -ListAvailable -Name $module) {
+        Import-Module -Name $module
+    }
+    else {
+        Write-Warning "PowerShell module is not installed: $module"
+    }
 }
 
-# Keybindings
-Set-PSReadLineKeyHandler -Chord 'Ctrl+d' -Function DeleteChar
-Set-PSReadLineKeyHandler -Key   Tab      -Function MenuComplete
-Set-PSReadLineKeyHandler -Chord 'Ctrl+z' -Function Undo
+$interactiveConsole = (
+    $Host.Name -eq 'ConsoleHost' -and
+    $Host.UI.SupportsVirtualTerminal -and
+    -not [Console]::IsInputRedirected -and
+    -not [Console]::IsOutputRedirected
+)
 
-# ---------- zsh-style partial suggestion (Ctrl+→ / Ctrl+←) ----------
-Set-PSReadLineKeyHandler -Key UpArrow   -Function HistorySearchBackward
-Set-PSReadLineKeyHandler -Key DownArrow -Function HistorySearchForward
-Set-PSReadLineKeyHandler    -Chord 'Ctrl+RightArrow' -Function ForwardWord
-Set-PSReadLineKeyHandler    -Chord 'Ctrl+LeftArrow'  -Function BackwardWord
+if ($interactiveConsole -and (Get-Module -Name PSReadLine)) {
+    Set-PSReadLineOption -EditMode Emacs
+    Set-PSReadLineOption -BellStyle None
+    Set-PSReadLineOption -PredictionSource History
+    Set-PSReadLineOption -PredictionViewStyle InlineView
+    Set-PSReadLineOption -Colors @{
+        Command          = 'Green'
+        Keyword          = 'Yellow'
+        Operator         = 'Magenta'
+        Variable         = 'Blue'
+        Parameter        = 'Cyan'
+        InlinePrediction = 'DarkGray'
+    }
 
-# ---------- Aliases ----------
-New-Alias -Name ll -Value Get-ChildItem -Description "List items with details"
-New-Alias -Name la -Value Get-ChildItem -Force -Description "List all items including hidden"
-New-Alias -Name l  -Value Get-ChildItem -Description "Alias for ls"
-New-Alias -Name .. -Value "Set-Location .."
-New-Alias -Name ... -Value "Set-Location ../.."
-New-Alias -Name c -Value Clear-Host
-New-Alias -Name grep -Value "Select-String"
-New-Alias -Name which -Value "Get-Command"
-
-# ---------- Lightweight helpers ----------
-function which($command) {
-    Get-Command $command | Select-Object -ExpandProperty Source
+    Set-PSReadLineKeyHandler -Chord 'Ctrl+d' -Function DeleteChar
+    Set-PSReadLineKeyHandler -Key Tab -Function MenuComplete
+    Set-PSReadLineKeyHandler -Chord 'Ctrl+z' -Function Undo
+    Set-PSReadLineKeyHandler -Key UpArrow -Function HistorySearchBackward
+    Set-PSReadLineKeyHandler -Key DownArrow -Function HistorySearchForward
+    Set-PSReadLineKeyHandler -Chord 'Ctrl+RightArrow' -Function ForwardWord
+    Set-PSReadLineKeyHandler -Chord 'Ctrl+LeftArrow' -Function BackwardWord
 }
 
-filter xcall { param($exe) & $exe @args }
+if ($interactiveConsole -and (Get-Command Set-PsFzfOption -ErrorAction SilentlyContinue)) {
+    Set-PsFzfOption `
+        -PSReadlineChordProvider 'Ctrl+f' `
+        -PSReadlineChordReverseHistory 'Ctrl+r'
+}
 
-# ---------- Heavy functions moved to module ----------
+if ($interactiveConsole) {
+    if (Get-Command starship -ErrorAction SilentlyContinue) {
+        Invoke-Expression (& starship init powershell)
+    }
+    else {
+        Write-Warning 'starship is not installed.'
+    }
+
+    if (Get-Command zoxide -ErrorAction SilentlyContinue) {
+        Invoke-Expression (& { zoxide init powershell | Out-String })
+    }
+    else {
+        Write-Warning 'zoxide is not installed.'
+    }
+}
+
+function ll {
+    Get-ChildItem @args | Format-Table -AutoSize
+}
+
+function la {
+    Get-ChildItem -Force @args
+}
+
+function l {
+    Get-ChildItem @args
+}
+
+function Set-LocationUp {
+    Set-Location ..
+}
+
+function Set-LocationUpTwo {
+    Set-Location ..\..
+}
+
+Set-Alias -Name .. -Value Set-LocationUp
+Set-Alias -Name ... -Value Set-LocationUpTwo
+Set-Alias -Name c -Value Clear-Host
+
+function which {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory, Position = 0)]
+        [string]$Command
+    )
+
+    Get-Command $Command
+}
+
 function TreeG {
     [CmdletBinding()]
     param(
-        [int]    $Level = 3,
-        [string] $Path  = "."
+        [ValidateRange(1, 20)]
+        [int]$Level = 3,
+
+        [string]$Path = '.'
     )
 
-    # ROOT directory
-    $root = (Resolve-Path $Path).ProviderPath
-
-    # Retrieve all ignored items (including directories) at once
-    $raw = & git ls-files --others --ignored --exclude-standard --directory -z
-    if (-not $raw) {
-        Write-Warning "git ls-files returned nothing. Is this a Git repo?"
-        return
+    & eza --tree "--level=$Level" --git-ignore --group-directories-first -- $Path
+    if ($LASTEXITCODE -ne 0) {
+        throw "eza failed with code $LASTEXITCODE."
     }
-    $ignoredSet = ($raw -split "`0" | Where-Object { $_ -ne "" }) | ForEach-Object { Join-Path $root $_ }
-    $ignored = [System.Collections.Generic.HashSet[string]]::new(
-        $ignoredSet, [System.StringComparer]::InvariantCultureIgnoreCase
-    )
-
-    $script:PrefixStack = @()
-
-    function Recurse {
-        param([string] $Dir, [int] $Depth)
-
-        $items = Get-ChildItem -LiteralPath $Dir |
-                 Sort-Object @{Expression={$_.PSIsContainer};Descending=$true}, Name
-
-        for ($i=0; $i -lt $items.Count; $i++) {
-            $item   = $items[$i]
-            $isLast = ($i -eq $items.Count - 1)
-            $prefix = $PrefixStack -join ""
-
-            # Skip ignored items
-            if ($ignored.Contains($item.FullName)) { continue }
-
-            if ($isLast) { "$prefix+-- $($item.Name)" }
-            else         { "$prefix|-- $($item.Name)" }
-
-            if ($item.PSIsContainer -and $Depth -gt 1) {
-                if ($isLast) { $PrefixStack += "   " }
-                else          { $PrefixStack += "|   " }
-
-                Recurse $item.FullName ($Depth - 1)
-
-                # Pop
-                $PrefixStack = $PrefixStack[0..($PrefixStack.Count - 2)]
-            }
-        }
-    }
-
-    Write-Host $root
-    Recurse $root $Level
 }
 
 function Merge-FilesByExtension {
+    [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory)]
+        [ValidatePattern('^[A-Za-z0-9]+$')]
         [string]$Extension
     )
-    # 递归查找，先拿到所有目标文件
-    $files = Get-ChildItem -Path . -Recurse -Filter "*.$Extension" -File |
-        Where-Object { $_.FullName -notmatch '\\.venv\\' }
+
+    $outputFile = Join-Path (Get-Location) "combined_$Extension.txt"
+    $excludedDirectories = '\\(\.git|\.venv|node_modules|dist|build)\\'
+    $files = @(
+        Get-ChildItem -LiteralPath . -Recurse -File -Filter "*.$Extension" |
+            Where-Object {
+                $_.FullName -ne $outputFile -and
+                $_.FullName -notmatch $excludedDirectories
+            }
+    )
 
     if ($files.Count -eq 0) {
-        Write-Host "No files found with extension .$Extension" -ForegroundColor Yellow
+        Write-Warning "No files found with extension .$Extension"
         return
     }
 
-    Write-Host "Found files:" -ForegroundColor Cyan
-    foreach ($file in $files) {
-        $indentLevel = ($file.FullName -Split '\\').Count - 2
-        $indent = ' ' * ($indentLevel * 3)
-        Write-Host "$indent$file"
+    $writer = [IO.StreamWriter]::new($outputFile, $false, $utf8NoBom)
+    try {
+        foreach ($file in $files) {
+            $writer.WriteLine("===== $($file.FullName) =====")
+            $writer.WriteLine([IO.File]::ReadAllText($file.FullName))
+        }
+    }
+    finally {
+        $writer.Dispose()
     }
 
-    $outputFile = "combined_$Extension.txt"
-    if (Test-Path $outputFile) { Remove-Item $outputFile }
-    foreach ($file in $files) {
-        Add-Content -Path $outputFile -Value ("===== " + $file.FullName + " =====")
-        Get-Content -Path $file.FullName | Add-Content -Path $outputFile
-    }
-    Write-Host "Merged into $outputFile" -ForegroundColor Green
+    Write-Host "Merged $($files.Count) files into $outputFile"
 }
-

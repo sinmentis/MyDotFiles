@@ -1,0 +1,20 @@
+@{
+    Packages = @(
+        'Microsoft.VCRedist.2015+.x64'
+        'Microsoft.WindowsTerminal'
+        'Microsoft.PowerShell'
+        'Git.Git'
+        'GitHub.cli'
+        'GitHub.Copilot'
+        'Microsoft.VisualStudioCode'
+        'Starship.Starship'
+        'ajeetdsouza.zoxide'
+        'junegunn.fzf'
+        'sharkdp.fd'
+        'BurntSushi.ripgrep.MSVC'
+        'eza-community.eza'
+        'jqlang.jq'
+        'dandavison.delta'
+        'DEVCOM.JetBrainsMonoNerdFont'
+    )
+}

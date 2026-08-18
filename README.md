@@ -157,47 +157,27 @@ MyDotFiles/
 |   |-- copilot/                # instructions + MCP config + hooks/
 |   |-- lib/                    # idempotent install_*.sh components
 |   `-- vm-prep/                # one-time VM hardening scripts
+|-- Windows/
+|   |-- bootstrap.ps1           # Windows host entry point
+|   |-- packages.psd1           # exact WinGet package IDs
+|   |-- configure-user.ps1      # user-level config deployment
+|   |-- .config/                # PowerShell + Starship config
+|   `-- WindowsTerminal/        # settings overlay + Copilot profile
 |-- plugin.json                 # Copilot plugin manifest
 |-- skills/                     # root-level personal Copilot skills
 `-- .github/plugin/marketplace.json
 ```
 
-## PowerShell
+## Windows host: quick start
 
-1. Install Scoop and tools
+The Windows setup uses a WinGet package manifest and leaves WSL distributions
+untouched. From a normal Windows PowerShell (it requests UAC elevation):
 
-```
-Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.scoop.sh')
-scoop install curl sudo
-winget install -e --id Git.Git
-scoop install neovim gcc
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Windows\bootstrap.ps1 -EnableWsl
 ```
 
-2. Setup user profile
-```
-mkdir .config
-cp powershell .config
-echo $env:USERPROFILE\.config\powershell\user_profile.ps1 > $PROFILE.CurrentUserCurrentHost
-```
-
-3. Install oh my posh
-```
-Install-Module posh-git -Scope CurrentUser -Force
-Install-Module oh-my-posh -Scope CurrentUser -Force
-```
-
-4. Install related tools - Terminal Icons / z / PSReadLine / fzf
-```
-Install-Module -Name Terminal-Icons -Repository PSGallery -Force
-Install-Module -Name z -Force
-Install-Module -Name PSReadLine -AllowPrerelease -Scope CurrentUser -Force - SkipPublisherCheck
-Set-PSReadLineOption -PredictionSource History
-Set-PSReadLineOption -PredictionViewStyle ListView
-scoop install fzf
-Install-Module -Name PSFzf -Scope CurrentUser -Force
-Set-PsFzfOption -PSReadlineChordProvider 'Ctrl+f' -PSReadlineChordReverseHistory 'Ctrl+r'
-```
-
-
-## Nerd Font
-[Hack Nerd Font](https://github.com/ryanoasis/nerd-fonts/releases/download/v2.1.0/Hack.zip)
+This installs the Windows-side terminal, Git/GitHub, Copilot, editor, prompt,
+modern CLI tools, and the WSL platform without installing a distribution. See
+[`Windows/README.md`](Windows/README.md) for the exact package list, rerun
+options, WSL restore command, and manual authentication steps.
