@@ -3,13 +3,14 @@
 This setup configures the Windows host only. It does not create, import, start,
 or modify a WSL distribution.
 
-Native language runtimes, compilers, and Docker are intentionally excluded.
-They belong to the restored WSL environment.
+Node.js LTS is installed on Windows for native tooling. Other language
+runtimes, compilers, and Docker belong to the restored WSL environment.
 
 ## What is automated
 
 - WinGet packages: PowerShell 7, Windows Terminal, Git, GitHub CLI, Copilot CLI,
-  VS Code, Starship, zoxide, fzf, fd, ripgrep, eza, jq, delta, and a Nerd Font.
+  VS Code, Node.js LTS, Starship, zoxide, fzf, fd, ripgrep, eza, jq, delta, and
+  a Nerd Font.
 - Win32 long-path support, with optional Windows Developer Mode.
 - PowerShell modules and profile deployment.
 - A portable Git configuration with a machine-local identity file.

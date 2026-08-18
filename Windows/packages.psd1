@@ -7,6 +7,7 @@
         'GitHub.cli'
         'GitHub.Copilot'
         'Microsoft.VisualStudioCode'
+        'OpenJS.NodeJS.LTS'
         'Starship.Starship'
         'ajeetdsouza.zoxide'
         'junegunn.fzf'
