@@ -3,8 +3,7 @@
 # install_copilot.sh — deploy generic GitHub Copilot CLI config into ~/.copilot.
 #
 # Symlinks the repo's generic copilot-instructions.md + mcp-config.json and
-# user-level hooks/ into ~/.copilot, then installs the repository's versioned
-# personal-skills plugin from its local marketplace. Machine-local instructions
+# user-level hooks/ into ~/.copilot. Machine-local instructions
 # (e.g. work context) are NOT managed here — keep those in
 # ~/.copilot/local/*.instructions.md and load them via the
 # COPILOT_CUSTOM_INSTRUCTIONS_DIRS env var (see .zshenv / .zshrc.local).
@@ -31,45 +30,6 @@ else
                  "$COPILOT_DIR/mcp-config.json"
 fi
 
-log "installing personal Copilot plugin..."
-if command -v copilot >/dev/null 2>&1; then
-    if [ -L "$COPILOT_DIR/skills" ]; then
-        legacy_target="$(readlink "$COPILOT_DIR/skills" 2>/dev/null || true)"
-        case "$legacy_target" in
-            "$DOTFILES_LINUX_DIR/copilot/skills"|"$DOTFILES_ROOT/skills")
-                unlink "$COPILOT_DIR/skills"
-                log "removed legacy ~/.copilot/skills symlink"
-                ;;
-        esac
-    fi
-
-    plugin_listing="$(copilot plugin list 2>&1)"
-    if grep -Fq "sinmentis-skills@sinmentis-marketplace " <<<"$plugin_listing"; then
-        copilot plugin uninstall sinmentis-skills@sinmentis-marketplace >/dev/null
-        log "removed legacy sinmentis-skills@sinmentis-marketplace plugin"
-    fi
-
-    marketplace_listing="$(copilot plugin marketplace list 2>&1)"
-    if grep -Fq "sinmentis-marketplace (" <<<"$marketplace_listing"; then
-        copilot plugin marketplace remove sinmentis-marketplace >/dev/null
-        log "removed legacy sinmentis-marketplace"
-        marketplace_listing="$(copilot plugin marketplace list 2>&1)"
-    fi
-
-    if grep -Fq "sinmentis (Local: $DOTFILES_ROOT)" <<<"$marketplace_listing"; then
-        copilot plugin marketplace update sinmentis >/dev/null
-    elif grep -Fq "sinmentis (" <<<"$marketplace_listing"; then
-        copilot plugin marketplace remove sinmentis >/dev/null
-        copilot plugin marketplace add "$DOTFILES_ROOT" >/dev/null
-    else
-        copilot plugin marketplace add "$DOTFILES_ROOT" >/dev/null
-    fi
-    copilot plugin install shunbox@sinmentis >/dev/null
-    log "installed shunbox@sinmentis"
-else
-    warn "copilot is not installed; skipping personal plugin installation"
-fi
-
 log "linking Copilot hooks..."
 link_dotfile "$DOTFILES_LINUX_DIR/copilot/hooks" \
              "$COPILOT_DIR/hooks"
@@ -77,4 +37,4 @@ link_dotfile "$DOTFILES_LINUX_DIR/copilot/hooks" \
 log "applying WSL clipboard (/copy) fix if needed..."
 bash "$DOTFILES_LINUX_DIR/lib/patch_copilot_clipboard.sh"
 
-log "done. Restart Copilot CLI to load plugin and hook changes; machine-local instructions stay in ~/.copilot/local."
+log "done. Restart Copilot CLI to load hook changes; machine-local instructions stay in ~/.copilot/local."

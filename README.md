@@ -46,7 +46,6 @@ and never committed. Templates ship as `*.example`.
 | zsh     | `Linux/.zshrc` sources it at top        | `~/.zshrc.local`                       |
 | git     | `Linux/.gitconfig` `[include]`s it      | `~/.gitconfig.local` (identity, creds) |
 | copilot | `Linux/copilot/copilot-instructions.md` | `~/.copilot/local/*.instructions.md`   |
-| copilot skills | `skills/`                          | n/a — skills are public-safe by design |
 | copilot hooks | `Linux/copilot/hooks/` | n/a — generic user hooks are public-safe |
 
 Seed your local files from the examples:
@@ -77,54 +76,6 @@ GitHub Copilot CLI loads `**/*.instructions.md` from every directory listed in
 `copilot-instructions.md`; keep work/private context in
 `~/.copilot/local/*.instructions.md` and point the env var there (e.g. from
 `~/.zshenv`).
-
-#### Personal Copilot plugin marketplace
-
-The repository root is a versioned Copilot CLI plugin:
-
-```text
-plugin.json                         # shunbox manifest
-.github/plugin/marketplace.json     # sinmentis catalog
-skills/<name>/SKILL.md              # one directory per skill
-```
-
-Install it from GitHub:
-
-```bash
-copilot plugin marketplace add sinmentis/MyDotFiles
-copilot plugin install shunbox@sinmentis
-```
-
-Update it after a new release:
-
-```bash
-copilot plugin marketplace update sinmentis
-copilot plugin update shunbox@sinmentis
-```
-
-For a local clone, `install_copilot.sh` registers the clone as a development
-marketplace and reinstalls the cached plugin. Add a skill under
-`skills/<name>/SKILL.md`, validate it, then reinstall:
-
-```bash
-node scripts/validate-plugin.js
-copilot plugin install shunbox@sinmentis
-```
-
-The installer preserves an existing real `~/.copilot/mcp-config.json`, so
-machine-local MCP servers are not replaced by the tracked generic config.
-
-Release a new version by updating `CHANGELOG.md`, then synchronizing the plugin
-and marketplace manifests:
-
-```bash
-node scripts/set-plugin-version.js 0.2.0
-node scripts/validate-plugin.js
-git add plugin.json .github/plugin/marketplace.json CHANGELOG.md
-git commit -m "chore(plugin): release v0.2.0"
-git tag v0.2.0
-git push origin main v0.2.0
-```
 
 #### Copilot CLI tmux alerts
 
@@ -163,9 +114,6 @@ MyDotFiles/
 |   |-- configure-user.ps1      # user-level config deployment
 |   |-- .config/                # PowerShell + Starship config
 |   `-- WindowsTerminal/        # settings overlay + Copilot profile
-|-- plugin.json                 # Copilot plugin manifest
-|-- skills/                     # root-level personal Copilot skills
-`-- .github/plugin/marketplace.json
 ```
 
 ## Windows host: quick start
