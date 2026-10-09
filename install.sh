@@ -14,6 +14,8 @@
 #   ./install.sh --zsh --git            # just these two
 #   ./install.sh --profile vm --no-tmux
 #   ./install.sh --profile vm --tmux-autoattach     # force auto-attach on a server
+#   ./install.sh --profile wsl --dry-run             # print changes only
+#   ./install.sh --profile wsl --update              # refresh pinned shell dependencies
 #
 # Profile matrix:
 #   profile   zsh  git  tmux  copilot   tmux-autoattach
@@ -28,14 +30,40 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LINUX_DIR="$REPO_ROOT/Linux"
 LIB_DIR="$LINUX_DIR/lib"
-LOG_TAG="install"
+export LOG_TAG="install"
+# shellcheck source=Linux/lib/common.sh
 source "$LIB_DIR/common.sh"
 
-usage() { sed -n '2,/^set -euo/p' "$0" | sed 's/^# \{0,1\}//; /^set -euo/d'; }
+usage() {
+    cat <<'EOF'
+Usage:
+  ./install.sh --profile {wsl|vm|minimal} [options]
+  ./install.sh [component options]
+
+Profiles:
+  wsl       zsh + git + tmux + Copilot config; tmux auto-attach on
+  vm        zsh + git + tmux + Copilot config; tmux auto-attach off
+  minimal   zsh + git only
+
+Components:
+  --zsh | --no-zsh
+  --git | --no-git
+  --tmux | --no-tmux
+  --copilot | --no-copilot
+
+Settings:
+  --tmux-autoattach | --no-tmux-autoattach
+  --dry-run    Print filesystem and privileged changes without applying them
+  --update     Refresh pinned Oh My Zsh, theme, and plugin checkouts
+  -h, --help
+EOF
+}
 
 # --- defaults (unset = "follow profile") --------------------------------------
 PROFILE=""
 WANT_ZSH=""; WANT_GIT=""; WANT_TMUX=""; WANT_COPILOT=""; WANT_AUTOATTACH=""
+DOTFILES_DRY_RUN="${DOTFILES_DRY_RUN:-0}"
+DOTFILES_UPDATE="${DOTFILES_UPDATE:-0}"
 
 # --- arg parsing --------------------------------------------------------------
 while [ $# -gt 0 ]; do
@@ -54,6 +82,8 @@ while [ $# -gt 0 ]; do
         --no-copilot) WANT_COPILOT=0; shift ;;
         --tmux-autoattach)    WANT_AUTOATTACH=1; shift ;;
         --no-tmux-autoattach) WANT_AUTOATTACH=0; shift ;;
+        --dry-run) DOTFILES_DRY_RUN=1; shift ;;
+        --update)  DOTFILES_UPDATE=1; shift ;;
         -h|--help) usage; exit 0 ;;
         *) warn "unknown argument: $1"; usage; exit 2 ;;
     esac
@@ -73,13 +103,18 @@ case "$PROFILE" in
     *) warn "unknown profile: $PROFILE (use wsl|vm|minimal)"; exit 2 ;;
 esac
 
-log "profile=${PROFILE:-none} zsh=$WANT_ZSH git=$WANT_GIT tmux=$WANT_TMUX copilot=$WANT_COPILOT autoattach=${WANT_AUTOATTACH:-preserve}"
+export DOTFILES_DRY_RUN DOTFILES_UPDATE
+log "profile=${PROFILE:-none} zsh=$WANT_ZSH git=$WANT_GIT tmux=$WANT_TMUX copilot=$WANT_COPILOT autoattach=${WANT_AUTOATTACH:-preserve} dry_run=$DOTFILES_DRY_RUN update=$DOTFILES_UPDATE"
 
 # --- ensure ~/.zshrc.local exists + reflects the auto-attach choice -----------
 # The generic .zshrc reads DOTFILES_TMUX_AUTOATTACH from ~/.zshrc.local.
 ensure_autoattach() {
     local want="$1" dest="$HOME/.zshrc.local"
     [ -e "$dest" ] || seed_local_file "$LINUX_DIR/.zshrc.local.example" "$dest"
+    if is_dry_run; then
+        log "would set tmux auto-attach to $want in $dest"
+        return
+    fi
     # Drop any existing active setting, then append the desired one.
     if grep -qE '^[[:space:]]*export DOTFILES_TMUX_AUTOATTACH=' "$dest"; then
         sed -i -E '/^[[:space:]]*export DOTFILES_TMUX_AUTOATTACH=/d' "$dest"
@@ -93,6 +128,10 @@ ensure_autoattach() {
 }
 
 # --- run selected components --------------------------------------------------
+if [ "$WANT_ZSH" = "1" ] || [ "$WANT_GIT" = "1" ] || [ "$WANT_TMUX" = "1" ]; then
+    apt_update_once
+fi
+
 [ "$WANT_ZSH" = "1" ]     && bash "$LIB_DIR/install_zsh.sh"
 [ "$WANT_GIT" = "1" ]     && bash "$LIB_DIR/install_git.sh"
 [ "$WANT_TMUX" = "1" ]    && bash "$LIB_DIR/install_tmux.sh"

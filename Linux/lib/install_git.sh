@@ -11,13 +11,13 @@
 #   bash lib/install_git.sh
 
 set -euo pipefail
-LOG_TAG="git"
+export LOG_TAG="git"
 DOTFILES_LINUX_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=common.sh
 source "$DOTFILES_LINUX_DIR/lib/common.sh"
 
 # 1. Packages. git-delta powers the pager/diff config in .gitconfig.
 log "installing git + git-delta..."
-sudo apt update
 apt_install git git-delta
 
 # 2. Deploy generic .gitconfig.

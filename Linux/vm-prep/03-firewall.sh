@@ -11,8 +11,7 @@
 #   - default DENY incoming
 #   - default ALLOW outgoing (no egress filtering, this is a dev box)
 #   - allow SSH (22)         — admin access
-#   - allow HTTP (80)        — Caddy ACME http-01 challenge + redirects
-#   - allow HTTPS (443)      — main web traffic
+#   - optionally allow HTTP (80) and HTTPS (443)
 #
 # Anything else (game-server ports, Tailscale-only services) is blocked
 # at the host even if NSG lets it through.
@@ -26,23 +25,44 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=common.sh
+source "$SCRIPT_DIR/common.sh"
+
+allow_http=0
+allow_https=0
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --allow-http) allow_http=1; shift ;;
+        --allow-https) allow_https=1; shift ;;
+        -h|--help)
+            echo "Usage: $0 [--allow-http] [--allow-https]"
+            exit 0 ;;
+        *) echo "unknown argument: $1" >&2; exit 2 ;;
+    esac
+done
+
 echo "[03-fw] installing ufw..."
-sudo DEBIAN_FRONTEND=noninteractive apt install -y ufw
+vm_sudo env DEBIAN_FRONTEND=noninteractive apt install -y ufw
 
 echo "[03-fw] applying default policies..."
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
+vm_sudo ufw default deny incoming
+vm_sudo ufw default allow outgoing
 
-echo "[03-fw] allowing ssh / http / https..."
-sudo ufw allow ssh
-sudo ufw allow http
-sudo ufw allow https
+echo "[03-fw] allowing ssh..."
+vm_sudo ufw allow ssh
+if [ "$allow_http" = "1" ]; then
+    vm_sudo ufw allow http
+fi
+if [ "$allow_https" = "1" ]; then
+    vm_sudo ufw allow https
+fi
 
 echo "[03-fw] enabling ufw..."
 # --force = skip the "are you sure (y/n)" prompt
-sudo ufw --force enable
+vm_sudo ufw --force enable
 
 echo "[03-fw] current rules:"
-sudo ufw status verbose
+vm_sudo ufw status verbose
 
 echo "[03-fw] done."

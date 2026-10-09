@@ -36,14 +36,18 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=common.sh
+source "$SCRIPT_DIR/common.sh"
+
 echo "[01-base] apt update..."
-sudo apt update
+vm_sudo apt update
 
 echo "[01-base] apt upgrade..."
-sudo DEBIAN_FRONTEND=noninteractive apt upgrade -y
+vm_sudo env DEBIAN_FRONTEND=noninteractive apt upgrade -y
 
 echo "[01-base] installing base packages..."
-sudo DEBIAN_FRONTEND=noninteractive apt install -y \
+vm_sudo env DEBIAN_FRONTEND=noninteractive apt install -y \
     build-essential \
     curl wget \
     git git-delta \
@@ -55,7 +59,7 @@ sudo DEBIAN_FRONTEND=noninteractive apt install -y \
     ca-certificates gnupg lsb-release
 
 echo "[01-base] autoremove..."
-sudo apt autoremove -y
+vm_sudo apt autoremove -y
 
 if [ -f /var/run/reboot-required ]; then
     echo

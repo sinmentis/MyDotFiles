@@ -24,17 +24,21 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=common.sh
+source "$SCRIPT_DIR/common.sh"
+
 echo "[02-uu] installing unattended-upgrades..."
-sudo DEBIAN_FRONTEND=noninteractive apt install -y unattended-upgrades
+vm_sudo env DEBIAN_FRONTEND=noninteractive apt install -y unattended-upgrades
 
 echo "[02-uu] reconfiguring (non-interactive)..."
 # This writes /etc/apt/apt.conf.d/20auto-upgrades with the YES/YES defaults.
-sudo dpkg-reconfigure -f noninteractive unattended-upgrades
+vm_sudo dpkg-reconfigure -f noninteractive unattended-upgrades
 
 echo "[02-uu] effective 20auto-upgrades config:"
-sudo cat /etc/apt/apt.conf.d/20auto-upgrades
+vm_sudo cat /etc/apt/apt.conf.d/20auto-upgrades
 
 echo "[02-uu] systemd timer status:"
-systemctl status apt-daily.timer apt-daily-upgrade.timer --no-pager || true
+vm_run systemctl status apt-daily.timer apt-daily-upgrade.timer --no-pager || true
 
 echo "[02-uu] done."

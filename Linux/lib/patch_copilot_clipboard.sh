@@ -29,8 +29,9 @@
 #   bash lib/patch_copilot_clipboard.sh
 
 set -euo pipefail
-LOG_TAG="copilot-clip"
+export LOG_TAG="copilot-clip"
 DOTFILES_LINUX_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=common.sh
 source "$DOTFILES_LINUX_DIR/lib/common.sh"
 
 # Only relevant on WSL.
@@ -45,7 +46,9 @@ if [ ! -d "$PKG_ROOT" ]; then
     exit 0
 fi
 
+# shellcheck disable=SC2016 # Literal JavaScript templates, not shell variables.
 OLD='chcp 65001 >nul & "${e}"'
+# shellcheck disable=SC2016 # Literal JavaScript templates, not shell variables.
 NEW='chcp 65001 >nul & ${e}'
 
 patched_any=0
@@ -60,6 +63,11 @@ while IFS= read -r -d '' f; do
     if ! grep -qF "$OLD" "$f"; then
         # Neither the buggy nor the patched form: upstream changed the code.
         warn "clipboard template not found in ${f#"$HOME"/} (upstream may have changed); skipping."
+        continue
+    fi
+    if is_dry_run; then
+        log "would patch ${f#"$HOME"/}"
+        patched_any=1
         continue
     fi
     cp -n "$f" "$f.clip-backup" 2>/dev/null || true

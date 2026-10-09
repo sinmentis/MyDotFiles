@@ -28,35 +28,67 @@
 
 set -euo pipefail
 
-SWAPFILE=/swapfile
-SWAPSIZE=4G
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=common.sh
+source "$SCRIPT_DIR/common.sh"
 
-if sudo swapon --show=NAME --noheadings | grep -qx "$SWAPFILE"; then
+SWAPFILE=/swapfile
+SWAPSIZE=""
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --size)
+            [ "$#" -ge 2 ] || { echo "--size requires a value" >&2; exit 2; }
+            SWAPSIZE="$2"; shift 2 ;;
+        --size=*) SWAPSIZE="${1#*=}"; shift ;;
+        -h|--help)
+            echo "Usage: $0 --size SIZE"
+            exit 0 ;;
+        *) echo "unknown argument: $1" >&2; exit 2 ;;
+    esac
+done
+[ -n "$SWAPSIZE" ] || { echo "--size is required" >&2; exit 2; }
+
+if ! vm_is_dry_run && sudo swapon --show=NAME --noheadings | grep -qx "$SWAPFILE"; then
     echo "[05-swap] $SWAPFILE is already active. Skipping creation."
 else
     if [ ! -f "$SWAPFILE" ]; then
+        requested_bytes="$(numfmt --from=iec "$SWAPSIZE")"
+        available_bytes="$(df --output=avail -B1 / | tail -n 1 | tr -d ' ')"
+        if [ "$requested_bytes" -gt "$available_bytes" ]; then
+            echo "[05-swap] insufficient free disk space for $SWAPSIZE" >&2
+            exit 1
+        fi
         echo "[05-swap] creating $SWAPFILE ($SWAPSIZE)..."
-        sudo fallocate -l "$SWAPSIZE" "$SWAPFILE"
-        sudo chmod 600 "$SWAPFILE"
-        sudo mkswap "$SWAPFILE"
+        vm_sudo fallocate -l "$SWAPSIZE" "$SWAPFILE"
+        vm_sudo chmod 600 "$SWAPFILE"
+        vm_sudo mkswap "$SWAPFILE"
     fi
     echo "[05-swap] enabling $SWAPFILE..."
-    sudo swapon "$SWAPFILE"
+    vm_sudo swapon "$SWAPFILE"
 fi
 
 # fstab entry — only append if missing.
 if ! grep -qE "^${SWAPFILE//\//\\/}\s" /etc/fstab; then
     echo "[05-swap] adding $SWAPFILE to /etc/fstab..."
-    echo "$SWAPFILE none swap sw 0 0" | sudo tee -a /etc/fstab >/dev/null
+    if vm_is_dry_run; then
+        vm_print_command sh -c "printf '%s\\n' '$SWAPFILE none swap sw 0 0' >> /etc/fstab"
+    else
+        echo "$SWAPFILE none swap sw 0 0" | sudo tee -a /etc/fstab >/dev/null
+    fi
 fi
 
 # swappiness — write a sysctl drop-in so it persists.
 echo "[05-swap] setting vm.swappiness=10 (persistent)..."
-echo 'vm.swappiness=10' | sudo tee /etc/sysctl.d/99-swappiness.conf >/dev/null
-sudo sysctl -p /etc/sysctl.d/99-swappiness.conf
+if vm_is_dry_run; then
+    vm_print_command sh -c "printf '%s\\n' 'vm.swappiness=10' > /etc/sysctl.d/99-swappiness.conf"
+else
+    echo 'vm.swappiness=10' | sudo tee /etc/sysctl.d/99-swappiness.conf >/dev/null
+fi
+vm_sudo sysctl -p /etc/sysctl.d/99-swappiness.conf
 
 echo "[05-swap] swap status:"
-sudo swapon --show
-free -h
+vm_sudo swapon --show
+vm_run free -h
 
 echo "[05-swap] done."
