@@ -26,8 +26,15 @@ KbdInteractiveAuthentication no
 PermitRootLogin prohibit-password
 EOF
 
-vm_sudo install -m 644 "$config_file" /etc/ssh/sshd_config.d/99-mydotfiles.conf
+vm_sudo rm -f /etc/ssh/sshd_config.d/99-mydotfiles.conf
+vm_sudo install -m 644 "$config_file" /etc/ssh/sshd_config.d/00-mydotfiles.conf
 vm_sudo sshd -t
 vm_sudo systemctl reload ssh
+
+if ! vm_is_dry_run; then
+    effective_config="$(sudo sshd -T)"
+    grep -qx 'passwordauthentication no' <<<"$effective_config"
+    grep -qx 'kbdinteractiveauthentication no' <<<"$effective_config"
+fi
 
 echo "[07-ssh] password authentication disabled after validating authorized_keys."

@@ -140,7 +140,9 @@ function Merge-Hashtable {
             $Target[$key] -is [System.Collections.IList] -and
             $Overlay[$key] -is [System.Collections.IList]
         ) {
-            $Target[$key] = Merge-ObjectArray -Target $Target[$key] -Overlay $Overlay[$key]
+            $Target[$key] = @(
+                Merge-ObjectArray -Target $Target[$key] -Overlay $Overlay[$key]
+            )
         }
         else {
             $Target[$key] = $Overlay[$key]
@@ -290,7 +292,7 @@ Copy-ManagedFile `
 if (-not $SkipCopilotConfiguration) {
     $repoRoot = Split-Path -Parent $PSScriptRoot
     Copy-ManagedFile `
-        -Source (Join-Path $repoRoot 'Linux\copilot\copilot-instructions.md') `
+        -Source (Join-Path $repoRoot 'Shared\copilot\copilot-instructions.md') `
         -Destination (Join-Path $HOME '.copilot\copilot-instructions.md')
 }
 

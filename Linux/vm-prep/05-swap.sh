@@ -48,15 +48,26 @@ while [ "$#" -gt 0 ]; do
     esac
 done
 [ -n "$SWAPSIZE" ] || { echo "--size is required" >&2; exit 2; }
+if ! requested_bytes="$(numfmt --from=iec "$SWAPSIZE" 2>/dev/null)"; then
+    echo "invalid --size: $SWAPSIZE (use an IEC value such as 4G)" >&2
+    exit 2
+fi
+
+if [ -f "$SWAPFILE" ]; then
+    existing_bytes="$(stat -c %s "$SWAPFILE")"
+    if [ "$existing_bytes" -ne "$requested_bytes" ]; then
+        echo "[05-swap] warning: existing $SWAPFILE is $(numfmt --to=iec "$existing_bytes"), requested $SWAPSIZE" >&2
+    fi
+fi
 
 if ! vm_is_dry_run && sudo swapon --show=NAME --noheadings | grep -qx "$SWAPFILE"; then
     echo "[05-swap] $SWAPFILE is already active. Skipping creation."
 else
     if [ ! -f "$SWAPFILE" ]; then
-        requested_bytes="$(numfmt --from=iec "$SWAPSIZE")"
         available_bytes="$(df --output=avail -B1 / | tail -n 1 | tr -d ' ')"
-        if [ "$requested_bytes" -gt "$available_bytes" ]; then
-            echo "[05-swap] insufficient free disk space for $SWAPSIZE" >&2
+        reserve_bytes=$((512 * 1024 * 1024))
+        if [ "$((requested_bytes + reserve_bytes))" -gt "$available_bytes" ]; then
+            echo "[05-swap] insufficient space for $SWAPSIZE plus a 512 MiB reserve" >&2
             exit 1
         fi
         echo "[05-swap] creating $SWAPFILE ($SWAPSIZE)..."

@@ -28,6 +28,7 @@ TMUX = shutil.which("tmux")
 FIELD_SEPARATOR = "__COPILOT_TMUX_FIELD__"
 TMUX_SESSION_OPTION = "@copilot_session_id"
 TMUX_HOME_OPTION = "@copilot_home"
+TMUX_PID_OPTION = "@copilot_pid"
 SESSION_ID_PATTERN = re.compile(
     r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
     re.IGNORECASE,
@@ -67,6 +68,33 @@ def parse_ppid(status_path):
         if line.startswith("PPid:"):
             return int(line.split()[1])
     return 0
+
+
+def process_argv(pid):
+    try:
+        raw = (Path("/proc") / str(pid) / "cmdline").read_bytes()
+    except (FileNotFoundError, PermissionError, ProcessLookupError):
+        return []
+    return [
+        value.decode(errors="surrogateescape")
+        for value in raw.split(b"\0")
+        if value
+    ]
+
+
+def find_copilot_ancestor(start_pid=None):
+    pid = start_pid or os.getppid()
+    seen = set()
+    while pid > 1 and pid not in seen:
+        seen.add(pid)
+        argv = process_argv(pid)
+        if argv and Path(argv[0]).name == "copilot":
+            return pid
+        try:
+            pid = parse_ppid(Path("/proc") / str(pid) / "status")
+        except (FileNotFoundError, PermissionError, ProcessLookupError):
+            return None
+    return None
 
 
 def process_table():
@@ -247,9 +275,22 @@ def pane_option(pane_id, option):
     return value or None
 
 
-def pane_bound_session_id(pane_id):
+def pane_bound_session_id(pane_id, copilot_pid, live_candidates):
     session_id = pane_option(pane_id, TMUX_SESSION_OPTION)
-    return session_id if valid_session_id(session_id) else None
+    bound_pid = pane_option(pane_id, TMUX_PID_OPTION)
+    if not valid_session_id(session_id) or bound_pid != str(copilot_pid):
+        return None
+    if live_candidates and session_id not in live_candidates:
+        return None
+    return session_id
+
+
+def pane_bound_copilot_home(pane_id, copilot_pid):
+    bound_pid = pane_option(pane_id, TMUX_PID_OPTION)
+    bound_home = pane_option(pane_id, TMUX_HOME_OPTION)
+    if bound_pid != str(copilot_pid) or not bound_home:
+        return None
+    return Path(bound_home).expanduser()
 
 
 def active_session_id(
@@ -259,11 +300,15 @@ def active_session_id(
     pane_id=None,
     state_dir=COPILOT_STATE_DIR,
 ):
-    bound_session_id = pane_bound_session_id(pane_id)
+    live_candidates = inuse_session_ids(copilot_pid, state_dir)
+    bound_session_id = pane_bound_session_id(
+        pane_id,
+        copilot_pid,
+        live_candidates,
+    )
     if bound_session_id:
         return bound_session_id, "session-hook"
 
-    live_candidates = inuse_session_ids(copilot_pid, state_dir)
     if len(live_candidates) == 1:
         return next(iter(live_candidates)), "live-hold"
 
@@ -319,12 +364,10 @@ def resolve_launcher(root_pid, pane_title, pane_id, processes):
         return None
     if parsed_id.version != 4:
         return None
-    bound_home = pane_option(pane_id, TMUX_HOME_OPTION)
-    copilot_home = (
-        Path(bound_home).expanduser()
-        if bound_home
-        else copilot_home_from_process(copilot_pid)
-    )
+    copilot_home = pane_bound_copilot_home(
+        pane_id,
+        copilot_pid,
+    ) or copilot_home_from_process(copilot_pid)
     copilot_state_dir = copilot_home / "session-state"
     session_id, session_detection = active_session_id(
         copilot_pid,
@@ -715,6 +758,9 @@ def record_session_start(_args):
 
     require_tmux()
     pane_id = os.environ["TMUX_PANE"]
+    copilot_pid = find_copilot_ancestor()
+    if copilot_pid is None:
+        return
     copilot_home = str(DEFAULT_COPILOT_HOME)
     run(
         [
@@ -736,6 +782,17 @@ def record_session_start(_args):
             pane_id,
             TMUX_HOME_OPTION,
             copilot_home,
+        ]
+    )
+    run(
+        [
+            TMUX,
+            "set-option",
+            "-p",
+            "-t",
+            pane_id,
+            TMUX_PID_OPTION,
+            str(copilot_pid),
         ]
     )
 

@@ -93,7 +93,7 @@ done
 case "$PROFILE" in
     wsl)     : "${WANT_ZSH:=1}" "${WANT_GIT:=1}" "${WANT_TMUX:=1}" "${WANT_COPILOT:=1}" "${WANT_AUTOATTACH:=1}" ;;
     vm)      : "${WANT_ZSH:=1}" "${WANT_GIT:=1}" "${WANT_TMUX:=1}" "${WANT_COPILOT:=1}" "${WANT_AUTOATTACH:=0}" ;;
-    minimal) : "${WANT_ZSH:=1}" "${WANT_GIT:=1}" "${WANT_TMUX:=0}" "${WANT_COPILOT:=0}" "${WANT_AUTOATTACH:=0}" ;;
+    minimal) : "${WANT_ZSH:=1}" "${WANT_GIT:=1}" "${WANT_TMUX:=0}" "${WANT_COPILOT:=0}" ;;
     "")
         # No profile: require at least one granular component.
         if [ -z "$WANT_ZSH$WANT_GIT$WANT_TMUX$WANT_COPILOT" ]; then

@@ -4,11 +4,7 @@
     "sessionStart": [
       {
         "type": "command",
-        "exec": "copilot-tmux",
-        "args": [
-          "hook",
-          "session-start"
-        ],
+        "bash": "if [ -n \"$TMUX\" ] && [ -x \"$HOME/.local/bin/copilot-tmux\" ]; then \"$HOME/.local/bin/copilot-tmux\" hook session-start || true; fi",
         "timeoutSec": 2
       }
     ]

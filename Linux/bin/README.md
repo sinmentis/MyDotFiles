@@ -20,8 +20,9 @@ copilot-tmux restore --no-attach
 ```
 
 The command dynamically discovers tmux panes and their process trees. It reads
-the current Copilot session binding from live session-state files, so session
-IDs, window names, directories, and pane counts are not hardcoded.
+the current Copilot session ID from the documented `sessionStart` hook. Live
+session-state inspection remains as a fallback for sessions started before the
+hook was installed.
 
 Snapshots are stored with owner-only permissions at:
 
@@ -35,6 +36,11 @@ Current scope:
 - One Copilot session per tmux window
 - GitHub Copilot CLI, including an outer `agency copilot` launcher
 - Manual save and restore
+
+Each `save` replaces the previous snapshot, including a filtered
+`save --tmux-session NAME`. Restore after the saved tmux sessions have exited;
+existing tmux session names are never overwritten. Preview recovery commands
+with `restore --dry-run`.
 
 When a Copilot pane has non-Copilot sibling panes, restore recreates the
 Copilot window as a single pane. The sibling panes and their running commands
@@ -64,6 +70,7 @@ browser. Override either location when needed:
 ```bash
 export PLAYWRIGHT_MCP_EXECUTABLE_PATH=/path/to/chrome
 export PLAYWRIGHT_MCP_USER_DATA_DIR=/path/to/profile
+export PLAYWRIGHT_MCP_VERSION=0.0.83
 ```
 
 `Linux/lib/install_copilot.sh` symlinks this command into `~/.local/bin`.

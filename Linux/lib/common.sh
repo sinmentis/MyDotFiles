@@ -65,20 +65,34 @@ link_dotfile() {
 clone_at_commit() {
     local url="$1" dest="$2" commit="$3"
     if [ ! -d "$dest/.git" ]; then
-        run git clone --filter=blob:none --no-checkout "$url" "$dest"
+        if [ -e "$dest" ]; then
+            warn "cannot install $dest because it exists and is not a Git checkout"
+            return 1
+        fi
+        local temporary
+        temporary="${dest}.tmp.$$"
+        run mkdir -p "$(dirname "$dest")"
+        run git clone --filter=blob:none --no-checkout "$url" "$temporary"
         if is_dry_run; then
-            print_command git -C "$dest" checkout --detach "$commit"
+            print_command git -C "$temporary" checkout --detach "$commit"
+            print_command mv "$temporary" "$dest"
             return
         fi
-        git -C "$dest" fetch --depth=1 origin "$commit"
-        git -C "$dest" checkout --detach "$commit"
+        if ! git -C "$temporary" fetch --depth=1 origin "$commit" ||
+           ! git -C "$temporary" checkout --detach "$commit"; then
+            rm -rf "$temporary"
+            return 1
+        fi
+        mv "$temporary" "$dest"
         return
     fi
 
-    if [ "${DOTFILES_UPDATE:-0}" != "1" ]; then
+    if [ "${DOTFILES_UPDATE:-0}" != "1" ] &&
+       git -C "$dest" rev-parse --verify HEAD >/dev/null 2>&1; then
         return
     fi
-    if ! git -C "$dest" diff --quiet || ! git -C "$dest" diff --cached --quiet; then
+    if git -C "$dest" rev-parse --verify HEAD >/dev/null 2>&1 &&
+       { ! git -C "$dest" diff --quiet || ! git -C "$dest" diff --cached --quiet; }; then
         warn "not updating $dest because it has local changes"
         return
     fi

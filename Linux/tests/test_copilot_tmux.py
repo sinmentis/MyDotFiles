@@ -73,6 +73,24 @@ class CopilotTmuxTests(unittest.TestCase):
 
     @mock.patch.object(
         COPILOT_TMUX,
+        "pane_option",
+        side_effect=[SESSION_B, "9999"],
+    )
+    def test_pane_binding_from_another_process_is_ignored(self, _pane_option):
+        self.assertIsNone(
+            COPILOT_TMUX.pane_bound_session_id("%1", 1234, {SESSION_B})
+        )
+
+    @mock.patch.object(
+        COPILOT_TMUX,
+        "pane_option",
+        side_effect=["9999", "/tmp/stale-home"],
+    )
+    def test_copilot_home_from_another_process_is_ignored(self, _pane_option):
+        self.assertIsNone(COPILOT_TMUX.pane_bound_copilot_home("%1", 1234))
+
+    @mock.patch.object(
+        COPILOT_TMUX,
         "active_session_id",
         return_value=(SESSION_B, "session-hook"),
     )
@@ -128,6 +146,11 @@ class CopilotTmuxTests(unittest.TestCase):
         with (
             mock.patch.object(COPILOT_TMUX, "TMUX", "/usr/bin/tmux"),
             mock.patch.object(COPILOT_TMUX.sys, "stdin", payload),
+            mock.patch.object(
+                COPILOT_TMUX,
+                "find_copilot_ancestor",
+                return_value=1234,
+            ),
             mock.patch.object(COPILOT_TMUX, "run") as run,
             mock.patch.dict(
                 os.environ,
@@ -137,10 +160,14 @@ class CopilotTmuxTests(unittest.TestCase):
         ):
             COPILOT_TMUX.record_session_start(None)
 
-        self.assertEqual(run.call_count, 2)
+        self.assertEqual(run.call_count, 3)
         self.assertEqual(
             run.call_args_list[0].args[0][-2:],
             [COPILOT_TMUX.TMUX_SESSION_OPTION, SESSION_B],
+        )
+        self.assertEqual(
+            run.call_args_list[2].args[0][-2:],
+            [COPILOT_TMUX.TMUX_PID_OPTION, "1234"],
         )
 
     def test_custom_copilot_home_is_restored(self):

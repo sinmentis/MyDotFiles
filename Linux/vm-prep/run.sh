@@ -56,6 +56,14 @@ done
 
 [ -n "$timezone" ] || { echo "--timezone is required" >&2; usage; exit 2; }
 [ -n "$swap_size" ] || { echo "--swap-size is required" >&2; usage; exit 2; }
+if ! numfmt --from=iec "$swap_size" >/dev/null 2>&1; then
+    echo "invalid --swap-size: $swap_size (use an IEC value such as 4G)" >&2
+    exit 2
+fi
+if [ ! -e "/usr/share/zoneinfo/$timezone" ]; then
+    echo "unknown --timezone: $timezone" >&2
+    exit 2
+fi
 export DOTFILES_DRY_RUN
 
 if [ "$skip_base" = "0" ]; then

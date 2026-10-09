@@ -1,5 +1,5 @@
-# ~/.gitconfig.local — machine-local git config, pulled in by the [include] at
-# the top of the repo .gitconfig. NOT tracked by this repo (gitignored).
+# ~/.gitconfig.local — machine-local git config, pulled in after the public
+# defaults in the repo .gitconfig. NOT tracked by this repo (gitignored).
 #
 # Put identity + credential helpers here. They differ per machine (work laptop
 # vs personal VM vs WSL) and must never be committed to a public repo.

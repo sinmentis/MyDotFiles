@@ -14,6 +14,7 @@
 set -euo pipefail
 export LOG_TAG="copilot"
 DOTFILES_LINUX_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+DOTFILES_ROOT="$(cd "$DOTFILES_LINUX_DIR/.." && pwd)"
 # shellcheck source=common.sh
 source "$DOTFILES_LINUX_DIR/lib/common.sh"
 
@@ -22,11 +23,13 @@ run mkdir -p "$COPILOT_DIR/instructions"
 run mkdir -p "$HOME/.local/bin"
 
 log "linking Copilot helper commands..."
+link_dotfile "$DOTFILES_LINUX_DIR/bin/copilot-tmux" \
+             "$HOME/.local/bin/copilot-tmux"
 link_dotfile "$DOTFILES_LINUX_DIR/bin/playwright-mcp" \
              "$HOME/.local/bin/playwright-mcp"
 
 log "linking copilot-instructions.md + mcp-config.json..."
-link_dotfile "$DOTFILES_LINUX_DIR/copilot/copilot-instructions.md" \
+link_dotfile "$DOTFILES_ROOT/Shared/copilot/copilot-instructions.md" \
              "$COPILOT_DIR/copilot-instructions.md"
 if [ -e "$COPILOT_DIR/mcp-config.json" ] && [ ! -L "$COPILOT_DIR/mcp-config.json" ]; then
     warn "preserving existing ~/.copilot/mcp-config.json; repo config remains available at Linux/copilot/mcp-config.json"
@@ -38,8 +41,5 @@ fi
 log "linking Copilot hooks..."
 link_dotfile "$DOTFILES_LINUX_DIR/copilot/hooks" \
              "$COPILOT_DIR/hooks"
-
-log "applying WSL clipboard (/copy) fix if needed..."
-bash "$DOTFILES_LINUX_DIR/lib/patch_copilot_clipboard.sh"
 
 log "done. Restart Copilot CLI to load hook changes; machine-local instructions stay in ~/.copilot/instructions."

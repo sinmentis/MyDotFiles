@@ -19,3 +19,6 @@ keyring-passphrase
 
 # Backups created by the install scripts' link_dotfile helper
 *.bak.*
+__pycache__/
+*.pyc
+testResults.xml

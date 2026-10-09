@@ -1,0 +1,82 @@
+name: Check
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shell checks
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes shellcheck zsh
+
+      - name: Check shell scripts
+        run: |
+          shellcheck -x -P SCRIPTDIR \
+            install.sh \
+            Linux/lib/*.sh \
+            Linux/vm-prep/*.sh \
+            Linux/bin/playwright-mcp \
+            Linux/Bind_ScrollDown \
+            Linux/Bind_ScrollPress \
+            Linux/Bind_ScrollUp
+          for script in install.sh Linux/lib/*.sh Linux/vm-prep/*.sh Linux/bin/playwright-mcp; do
+            bash -n "$script"
+          done
+          zsh -n Linux/.zshrc
+          zsh -n Linux/.p10k.zsh
+
+      - name: Check JSON and Python
+        run: |
+          python3 tests/check_json.py
+          python3 -m unittest discover -s Linux/tests -p 'test_*.py' -v
+
+      - name: Check installer plans
+        run: bash Linux/tests/test_install_dry_run.sh
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PowerShell test tools
+        shell: pwsh
+        run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          Install-Module PSScriptAnalyzer -Scope CurrentUser -Force
+          Install-Module Pester -MinimumVersion 5.5.0 -Scope CurrentUser -Force -SkipPublisherCheck
+
+      - name: Check PowerShell
+        shell: pwsh
+        run: |
+          $errors = @()
+          Get-ChildItem Windows -Recurse -Include *.ps1,*.psm1 | ForEach-Object {
+            $tokens = $null
+            $fileErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              $_.FullName,
+              [ref]$tokens,
+              [ref]$fileErrors
+            ) | Out-Null
+            $errors += $fileErrors
+          }
+          if ($errors) {
+            $errors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+          $findings = Invoke-ScriptAnalyzer -Path Windows -Recurse -Severity Error
+          if ($findings) {
+            $findings | Format-Table | Out-String | Write-Error
+            exit 1
+          }
+          Invoke-Pester -Path Windows/tests -CI
