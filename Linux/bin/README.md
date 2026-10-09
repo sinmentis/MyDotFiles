@@ -45,3 +45,25 @@ not resume mid-execution. The Copilot conversation and repository files remain
 available.
 
 `Linux/lib/install_tmux.sh` symlinks this command into `~/.local/bin`.
+
+## `playwright-mcp`
+
+Launch `@playwright/mcp` with a persistent user profile without embedding a
+machine-specific home directory in `mcp-config.json`.
+
+Defaults:
+
+```text
+Browser:  $HOME/.local/share/playwright/chrome
+Profile:  $HOME/.copilot/playwright-profile
+```
+
+If the default browser executable is absent, Playwright MCP selects its normal
+browser. Override either location when needed:
+
+```bash
+export PLAYWRIGHT_MCP_EXECUTABLE_PATH=/path/to/chrome
+export PLAYWRIGHT_MCP_USER_DATA_DIR=/path/to/profile
+```
+
+`Linux/lib/install_copilot.sh` symlinks this command into `~/.local/bin`.

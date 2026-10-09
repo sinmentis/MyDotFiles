@@ -5,10 +5,8 @@
         "*"
       ],
       "type": "local",
-      "command": "npx",
-      "args": [
-        "@playwright/mcp@latest"
-      ]
+      "command": "playwright-mcp",
+      "args": []
     },
     "azure": {
       "tools": [

@@ -19,6 +19,11 @@ source "$DOTFILES_LINUX_DIR/lib/common.sh"
 
 COPILOT_DIR="$HOME/.copilot"
 mkdir -p "$COPILOT_DIR/instructions"
+mkdir -p "$HOME/.local/bin"
+
+log "linking Copilot helper commands..."
+link_dotfile "$DOTFILES_LINUX_DIR/bin/playwright-mcp" \
+             "$HOME/.local/bin/playwright-mcp"
 
 log "linking copilot-instructions.md + mcp-config.json..."
 link_dotfile "$DOTFILES_LINUX_DIR/copilot/copilot-instructions.md" \

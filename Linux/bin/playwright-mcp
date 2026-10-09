@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+browser="${PLAYWRIGHT_MCP_EXECUTABLE_PATH:-$HOME/.local/share/playwright/chrome}"
+profile="${PLAYWRIGHT_MCP_USER_DATA_DIR:-$HOME/.copilot/playwright-profile}"
+
+mkdir -p "$profile"
+
+args=(--user-data-dir "$profile")
+if [ -n "${PLAYWRIGHT_MCP_EXECUTABLE_PATH:-}" ] && [ ! -x "$browser" ]; then
+    printf 'playwright-mcp: browser is not executable: %s\n' "$browser" >&2
+    exit 1
+fi
+if [ -x "$browser" ]; then
+    args+=(--executable-path "$browser")
+fi
+
+exec npx --yes @playwright/mcp@latest "${args[@]}" "$@"
