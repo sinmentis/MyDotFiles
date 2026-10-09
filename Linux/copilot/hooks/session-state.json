@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "type": "command",
+        "exec": "copilot-tmux",
+        "args": [
+          "hook",
+          "session-start"
+        ],
+        "timeoutSec": 2
+      }
+    ]
+  }
+}

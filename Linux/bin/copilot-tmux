@@ -20,11 +20,14 @@ from pathlib import Path
 HOME = Path.home()
 STATE_DIR = Path(os.environ.get("XDG_STATE_HOME", HOME / ".local/state")) / "copilot-tmux"
 SNAPSHOT_PATH = STATE_DIR / "snapshot.json"
-COPILOT_STATE_DIR = HOME / ".copilot" / "session-state"
-COPILOT_STORE = HOME / ".copilot" / "session-store.db"
+DEFAULT_COPILOT_HOME = Path(os.environ.get("COPILOT_HOME", HOME / ".copilot"))
+COPILOT_STATE_DIR = DEFAULT_COPILOT_HOME / "session-state"
+COPILOT_STORE = DEFAULT_COPILOT_HOME / "session-store.db"
 AGENCY_PATH = HOME / ".config" / "agency" / "CurrentVersion" / "agency"
 TMUX = shutil.which("tmux")
 FIELD_SEPARATOR = "__COPILOT_TMUX_FIELD__"
+TMUX_SESSION_OPTION = "@copilot_session_id"
+TMUX_HOME_OPTION = "@copilot_home"
 SESSION_ID_PATTERN = re.compile(
     r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
     re.IGNORECASE,
@@ -119,6 +122,10 @@ def option_value(argv, option):
     return None
 
 
+def valid_session_id(value):
+    return bool(value and SESSION_ID_PATTERN.fullmatch(value))
+
+
 def strip_session_control(argv):
     result = []
     index = 0
@@ -144,7 +151,24 @@ def strip_session_control(argv):
     return result
 
 
-def inuse_session_ids(copilot_pid):
+def copilot_home_from_process(copilot_pid):
+    environ_path = Path("/proc") / str(copilot_pid) / "environ"
+    try:
+        entries = environ_path.read_bytes().split(b"\0")
+    except (FileNotFoundError, PermissionError, ProcessLookupError):
+        return DEFAULT_COPILOT_HOME
+
+    for entry in entries:
+        if entry.startswith(b"COPILOT_HOME="):
+            value = entry.removeprefix(b"COPILOT_HOME=").decode(
+                errors="surrogateescape"
+            )
+            if value:
+                return Path(value).expanduser()
+    return DEFAULT_COPILOT_HOME
+
+
+def inuse_session_ids(copilot_pid, state_dir=COPILOT_STATE_DIR):
     session_ids = set()
     fd_dir = Path("/proc") / str(copilot_pid) / "fd"
     try:
@@ -161,15 +185,15 @@ def inuse_session_ids(copilot_pid):
         path = Path(target)
         if (
             path.name == f"inuse.{copilot_pid}.hold"
-            and path.parent.parent == COPILOT_STATE_DIR
-            and SESSION_ID_PATTERN.fullmatch(path.parent.name)
+            and path.parent.parent == state_dir
+            and valid_session_id(path.parent.name)
         ):
             session_ids.add(path.parent.name)
     return session_ids
 
 
-def parse_workspace_metadata(session_id):
-    path = COPILOT_STATE_DIR / session_id / "workspace.yaml"
+def parse_workspace_metadata(session_id, state_dir=COPILOT_STATE_DIR):
+    path = state_dir / session_id / "workspace.yaml"
     try:
         lines = path.read_text(errors="replace").splitlines()
     except OSError:
@@ -195,8 +219,8 @@ def parse_workspace_metadata(session_id):
     return metadata
 
 
-def session_activity(session_id):
-    session_dir = COPILOT_STATE_DIR / session_id
+def session_activity(session_id, state_dir=COPILOT_STATE_DIR):
+    session_dir = state_dir / session_id
     activity = 0
     for name in ("events.jsonl", "workspace.yaml"):
         try:
@@ -206,8 +230,40 @@ def session_activity(session_id):
     return activity
 
 
-def active_session_id(copilot_pid, initial_session_id, pane_title):
-    live_candidates = inuse_session_ids(copilot_pid)
+def pane_option(pane_id, option):
+    if not pane_id:
+        return None
+    try:
+        value = tmux_output(
+            "show-options",
+            "-p",
+            "-v",
+            "-t",
+            pane_id,
+            option,
+        ).strip()
+    except CopilotTmuxError:
+        return None
+    return value or None
+
+
+def pane_bound_session_id(pane_id):
+    session_id = pane_option(pane_id, TMUX_SESSION_OPTION)
+    return session_id if valid_session_id(session_id) else None
+
+
+def active_session_id(
+    copilot_pid,
+    initial_session_id,
+    pane_title,
+    pane_id=None,
+    state_dir=COPILOT_STATE_DIR,
+):
+    bound_session_id = pane_bound_session_id(pane_id)
+    if bound_session_id:
+        return bound_session_id, "session-hook"
+
+    live_candidates = inuse_session_ids(copilot_pid, state_dir)
     if len(live_candidates) == 1:
         return next(iter(live_candidates)), "live-hold"
 
@@ -218,19 +274,24 @@ def active_session_id(copilot_pid, initial_session_id, pane_title):
     title = pane_title.removesuffix(" - GitHub Copilot")
     title_matches = []
     for session_id in candidates:
-        name = parse_workspace_metadata(session_id).get("name")
+        name = parse_workspace_metadata(session_id, state_dir).get("name")
         if name and (title == name or title.startswith(name + " - ")):
-            title_matches.append((len(name), session_activity(session_id), session_id))
+            title_matches.append(
+                (len(name), session_activity(session_id, state_dir), session_id)
+            )
     if title_matches:
         return max(title_matches)[2], "pane-title"
 
     return (
-        max(candidates, key=lambda value: (session_activity(value), value)),
+        max(
+            candidates,
+            key=lambda value: (session_activity(value, state_dir), value),
+        ),
         "activity",
     )
 
 
-def resolve_launcher(root_pid, pane_title, processes):
+def resolve_launcher(root_pid, pane_title, pane_id, processes):
     descendants = descendant_processes(root_pid, processes)
     agency_candidates = []
     copilot_candidates = []
@@ -258,10 +319,19 @@ def resolve_launcher(root_pid, pane_title, processes):
         return None
     if parsed_id.version != 4:
         return None
+    bound_home = pane_option(pane_id, TMUX_HOME_OPTION)
+    copilot_home = (
+        Path(bound_home).expanduser()
+        if bound_home
+        else copilot_home_from_process(copilot_pid)
+    )
+    copilot_state_dir = copilot_home / "session-state"
     session_id, session_detection = active_session_id(
         copilot_pid,
         initial_session_id,
         pane_title,
+        pane_id,
+        copilot_state_dir,
     )
 
     if agency_candidates:
@@ -281,18 +351,21 @@ def resolve_launcher(root_pid, pane_title, processes):
         "session_detection": session_detection,
         "launcher_pid": launcher_pid,
         "copilot_pid": copilot_pid,
+        "copilot_home": str(copilot_home),
         "launcher_kind": kind,
         "launcher": launcher,
     }
 
 
-def session_metadata(session_id):
-    metadata = parse_workspace_metadata(session_id)
-    if not COPILOT_STORE.is_file():
+def session_metadata(session_id, copilot_home=DEFAULT_COPILOT_HOME):
+    state_dir = copilot_home / "session-state"
+    store = copilot_home / "session-store.db"
+    metadata = parse_workspace_metadata(session_id, state_dir)
+    if not store.is_file():
         return metadata
     try:
         connection = sqlite3.connect(
-            f"file:{COPILOT_STORE}?mode=ro",
+            f"file:{store}?mode=ro",
             uri=True,
             timeout=1,
         )
@@ -375,6 +448,18 @@ def list_tmux_panes():
     return panes
 
 
+def write_snapshot(snapshot):
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    temporary_path = SNAPSHOT_PATH.with_suffix(".json.tmp")
+    try:
+        temporary_path.write_text(json.dumps(snapshot, indent=2) + "\n")
+        os.chmod(temporary_path, 0o600)
+        os.replace(temporary_path, SNAPSHOT_PATH)
+    except Exception:
+        temporary_path.unlink(missing_ok=True)
+        raise
+
+
 def save_snapshot(args):
     processes = process_table()
     entries = []
@@ -386,6 +471,7 @@ def save_snapshot(args):
         launcher = resolve_launcher(
             pane["pane_pid"],
             pane["pane_title"],
+            pane["pane_id"],
             processes,
         )
         if not launcher:
@@ -401,7 +487,8 @@ def save_snapshot(args):
         copilot_windows[window_key] = pane
 
         session_id = launcher["session_id"]
-        session_dir = COPILOT_STATE_DIR / session_id
+        copilot_home = Path(launcher["copilot_home"])
+        session_dir = copilot_home / "session-state" / session_id
         if not session_dir.is_dir():
             raise CopilotTmuxError(
                 f"Copilot session directory does not exist: {session_dir}"
@@ -410,7 +497,7 @@ def save_snapshot(args):
         entry = {
             **pane,
             **launcher,
-            "metadata": session_metadata(session_id),
+            "metadata": session_metadata(session_id, copilot_home),
         }
         entries.append(entry)
 
@@ -433,11 +520,7 @@ def save_snapshot(args):
         "entries": entries,
     }
 
-    STATE_DIR.mkdir(parents=True, exist_ok=True)
-    temporary_path = SNAPSHOT_PATH.with_suffix(".json.tmp")
-    temporary_path.write_text(json.dumps(snapshot, indent=2) + "\n")
-    os.chmod(temporary_path, 0o600)
-    os.replace(temporary_path, SNAPSHOT_PATH)
+    write_snapshot(snapshot)
 
     print(f"Saved {len(entries)} Copilot sessions to {SNAPSHOT_PATH}")
     print_entries(entries)
@@ -482,6 +565,9 @@ def existing_tmux_sessions():
 def restore_command(entry):
     launcher = list(entry["launcher"])
     launcher.append(f'--resume={entry["session_id"]}')
+    copilot_home = entry.get("copilot_home")
+    if copilot_home and Path(copilot_home) != DEFAULT_COPILOT_HOME:
+        launcher = ["env", f"COPILOT_HOME={copilot_home}", *launcher]
     return shlex.join(launcher)
 
 
@@ -614,6 +700,46 @@ def show_snapshot(_args):
     print_entries(snapshot["entries"])
 
 
+def record_session_start(_args):
+    if not os.environ.get("TMUX") or not os.environ.get("TMUX_PANE"):
+        return
+
+    try:
+        payload = json.load(sys.stdin)
+    except json.JSONDecodeError as error:
+        raise CopilotTmuxError(f"invalid sessionStart payload: {error}") from error
+
+    session_id = payload.get("sessionId")
+    if not valid_session_id(session_id):
+        raise CopilotTmuxError("sessionStart payload has no valid sessionId")
+
+    require_tmux()
+    pane_id = os.environ["TMUX_PANE"]
+    copilot_home = str(DEFAULT_COPILOT_HOME)
+    run(
+        [
+            TMUX,
+            "set-option",
+            "-p",
+            "-t",
+            pane_id,
+            TMUX_SESSION_OPTION,
+            session_id,
+        ]
+    )
+    run(
+        [
+            TMUX,
+            "set-option",
+            "-p",
+            "-t",
+            pane_id,
+            TMUX_HOME_OPTION,
+            copilot_home,
+        ]
+    )
+
+
 def build_parser():
     parser = argparse.ArgumentParser(
         description="Save and restore tmux windows running Copilot CLI sessions."
@@ -651,6 +777,17 @@ def build_parser():
         help="Show the currently saved snapshot.",
     )
     show_parser.set_defaults(function=show_snapshot)
+
+    hook_parser = subparsers.add_parser(
+        "hook",
+        help=argparse.SUPPRESS,
+    )
+    hook_subparsers = hook_parser.add_subparsers(
+        dest="hook_command",
+        required=True,
+    )
+    session_start_parser = hook_subparsers.add_parser("session-start")
+    session_start_parser.set_defaults(function=record_session_start)
     return parser
 
 
