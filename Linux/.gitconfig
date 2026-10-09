@@ -1,8 +1,3 @@
-# Machine-local git config: identity + credential helpers live here, outside
-# this public repo. See .gitconfig.local.example for the template.
-[include]
-	path = ~/.gitconfig.local
-
 [alias]
 	co = checkout
 	cm = commit
@@ -16,19 +11,7 @@
 	autocrlf = input
 	editor = vim
 	ignorecase = false
-	compression = 0
-	packedGitLimit = 8096m
-	packedGitWindowSize = 8096m
 	pager = delta
-
-[pack]
-	deltaCachesSize =  2047m
-	packSzieLimit = 2047m
-	windowMemory = 2047m
-
-[http]
-	postBuffer = 1048576000
-	maxRequestBuffer = 300M
 
 # === delta: https://dandavison.github.io/delta/ ===
 [interactive]
@@ -100,6 +83,11 @@
 [credential "https://gist.github.com"]
 	helper = 
 	helper = !/usr/bin/gh auth git-credential
+
+# Machine-local defaults override the public configuration above. Azure DevOps
+# identity is applied last and only inside repositories whose remotes match.
+[include]
+	path = ~/.gitconfig.local
 [includeIf "hasconfig:remote.*.url:https://dev.azure.com/**"]
 	path = ~/.gitconfig-ado
 [includeIf "hasconfig:remote.*.url:https://*.visualstudio.com/**"]

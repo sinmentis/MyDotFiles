@@ -4,7 +4,8 @@
 param(
     [switch]$SkipModules,
     [switch]$SkipExtensions,
-    [switch]$SkipCopilotConfiguration
+    [switch]$SkipCopilotConfiguration,
+    [switch]$TestFunctionsOnly
 )
 
 Set-StrictMode -Version Latest
@@ -134,10 +135,73 @@ function Merge-Hashtable {
         ) {
             Merge-Hashtable -Target $Target[$key] -Overlay $Overlay[$key]
         }
+        elseif (
+            $Target.Contains($key) -and
+            $Target[$key] -is [System.Collections.IList] -and
+            $Overlay[$key] -is [System.Collections.IList]
+        ) {
+            $Target[$key] = Merge-ObjectArray -Target $Target[$key] -Overlay $Overlay[$key]
+        }
         else {
             $Target[$key] = $Overlay[$key]
         }
     }
+}
+
+function Get-ArrayItemIdentity {
+    param(
+        [Parameter(Mandatory)]
+        [object]$Item
+    )
+
+    if ($Item -isnot [System.Collections.IDictionary]) {
+        return $null
+    }
+
+    foreach ($key in @('id', 'keys', 'name')) {
+        if ($Item.Contains($key) -and $null -ne $Item[$key]) {
+            return "$key=$($Item[$key])"
+        }
+    }
+
+    return $null
+}
+
+function Merge-ObjectArray {
+    param(
+        [Parameter(Mandatory)]
+        [System.Collections.IList]$Target,
+
+        [Parameter(Mandatory)]
+        [System.Collections.IList]$Overlay
+    )
+
+    $result = [Collections.Generic.List[object]]::new()
+    foreach ($item in $Target) {
+        $result.Add($item)
+    }
+
+    foreach ($item in $Overlay) {
+        $identity = Get-ArrayItemIdentity -Item $item
+        $existingIndex = -1
+        if ($identity) {
+            for ($index = 0; $index -lt $result.Count; $index++) {
+                if ((Get-ArrayItemIdentity -Item $result[$index]) -eq $identity) {
+                    $existingIndex = $index
+                    break
+                }
+            }
+        }
+
+        if ($existingIndex -ge 0) {
+            $result[$existingIndex] = $item
+        }
+        else {
+            $result.Add($item)
+        }
+    }
+
+    return $result.ToArray()
 }
 
 function Get-WindowsTerminalSettingsPath {
@@ -155,6 +219,10 @@ function Get-WindowsTerminalSettingsPath {
     $stablePackage = Join-Path $env:LOCALAPPDATA 'Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState'
     New-Item -ItemType Directory -Path $stablePackage -Force | Out-Null
     return Join-Path $stablePackage 'settings.json'
+}
+
+if ($TestFunctionsOnly) {
+    return
 }
 
 if (-not $SkipModules) {
@@ -224,49 +292,6 @@ if (-not $SkipCopilotConfiguration) {
     Copy-ManagedFile `
         -Source (Join-Path $repoRoot 'Linux\copilot\copilot-instructions.md') `
         -Destination (Join-Path $HOME '.copilot\copilot-instructions.md')
-
-    $copilotCandidates = @(
-        (Get-Command copilot.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source -First 1),
-        (Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Links\copilot.exe')
-    ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) }
-    $copilotPath = $copilotCandidates | Select-Object -First 1
-    if (-not $copilotPath) {
-        throw 'GitHub Copilot CLI was not found after package provisioning.'
-    }
-
-    $inheritedGitExecPath = $env:GIT_EXEC_PATH
-    Remove-Item Env:GIT_EXEC_PATH -ErrorAction SilentlyContinue
-    try {
-        $marketplaceListing = @(& $copilotPath plugin marketplace list 2>&1)
-        if ($LASTEXITCODE -ne 0) {
-            throw "Copilot marketplace listing failed with code $LASTEXITCODE."
-        }
-        if (($marketplaceListing -join "`n") -notmatch '\bsinmentis\s+\(') {
-            & $copilotPath plugin marketplace add sinmentis/MyDotFiles
-            if ($LASTEXITCODE -ne 0) {
-                throw "Copilot marketplace installation failed with code $LASTEXITCODE."
-            }
-        }
-
-        $pluginListing = @(& $copilotPath plugin list 2>&1)
-        if ($LASTEXITCODE -ne 0) {
-            throw "Copilot plugin listing failed with code $LASTEXITCODE."
-        }
-        if (($pluginListing -join "`n") -notmatch 'shunbox@sinmentis') {
-            & $copilotPath plugin install shunbox@sinmentis
-            if ($LASTEXITCODE -ne 0) {
-                throw "Copilot plugin installation failed with code $LASTEXITCODE."
-            }
-        }
-    }
-    finally {
-        if ($null -ne $inheritedGitExecPath) {
-            $env:GIT_EXEC_PATH = $inheritedGitExecPath
-        }
-        else {
-            Remove-Item Env:GIT_EXEC_PATH -ErrorAction SilentlyContinue
-        }
-    }
 }
 
 if (-not $SkipExtensions) {

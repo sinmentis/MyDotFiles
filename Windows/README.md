@@ -16,7 +16,7 @@ runtimes, compilers, and Docker belong to the restored WSL environment.
 - A portable Git configuration with a machine-local identity file.
 - Windows Terminal defaults without replacing its generated profile list.
 - VS Code's WSL and PowerShell extensions.
-- The tracked global Copilot instructions and `shunbox@sinmentis` plugin.
+- The tracked global Copilot instructions.
 
 Run from a normal Windows PowerShell. The script requests elevation for package
 and system changes, then returns to the original user context for profile files:

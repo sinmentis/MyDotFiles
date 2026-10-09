@@ -69,11 +69,11 @@ case "$PROFILE" in
         if [ -z "$WANT_ZSH$WANT_GIT$WANT_TMUX$WANT_COPILOT" ]; then
             warn "no --profile and no component flags given."; usage; exit 2
         fi
-        : "${WANT_ZSH:=0}" "${WANT_GIT:=0}" "${WANT_TMUX:=0}" "${WANT_COPILOT:=0}" "${WANT_AUTOATTACH:=0}" ;;
+        : "${WANT_ZSH:=0}" "${WANT_GIT:=0}" "${WANT_TMUX:=0}" "${WANT_COPILOT:=0}" ;;
     *) warn "unknown profile: $PROFILE (use wsl|vm|minimal)"; exit 2 ;;
 esac
 
-log "profile=${PROFILE:-none} zsh=$WANT_ZSH git=$WANT_GIT tmux=$WANT_TMUX copilot=$WANT_COPILOT autoattach=$WANT_AUTOATTACH"
+log "profile=${PROFILE:-none} zsh=$WANT_ZSH git=$WANT_GIT tmux=$WANT_TMUX copilot=$WANT_COPILOT autoattach=${WANT_AUTOATTACH:-preserve}"
 
 # --- ensure ~/.zshrc.local exists + reflects the auto-attach choice -----------
 # The generic .zshrc reads DOTFILES_TMUX_AUTOATTACH from ~/.zshrc.local.
@@ -98,7 +98,10 @@ ensure_autoattach() {
 [ "$WANT_TMUX" = "1" ]    && bash "$LIB_DIR/install_tmux.sh"
 [ "$WANT_COPILOT" = "1" ] && bash "$LIB_DIR/install_copilot.sh"
 
-# Auto-attach state only matters once zsh is in play.
-[ "$WANT_ZSH" = "1" ] && ensure_autoattach "$WANT_AUTOATTACH"
+# Profiles and explicit auto-attach flags own this setting. A granular
+# `--zsh` reinstall preserves the existing machine-local choice.
+if [ "$WANT_ZSH" = "1" ] && [ -n "$WANT_AUTOATTACH" ]; then
+    ensure_autoattach "$WANT_AUTOATTACH"
+fi
 
 log "all done. Open a new terminal (or 'exec zsh') to pick up changes."
