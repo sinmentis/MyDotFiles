@@ -4,7 +4,7 @@
     "agentStop": [
       {
         "type": "command",
-        "bash": "if [ -n \"$TMUX\" ]; then printf '\\007' > /dev/tty; fi",
+        "bash": "if [ -n \"$TMUX\" ]; then printf '\\007' > /dev/tty 2>/dev/null || true; fi",
         "timeoutSec": 2
       }
     ],
@@ -12,7 +12,7 @@
       {
         "type": "command",
         "matcher": "permission_prompt|elicitation_dialog",
-        "bash": "if [ -n \"$TMUX\" ]; then printf '\\007' > /dev/tty; fi",
+        "bash": "if [ -n \"$TMUX\" ]; then printf '\\007' > /dev/tty 2>/dev/null || true; fi",
         "timeoutSec": 2
       }
     ]
