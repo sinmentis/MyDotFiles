@@ -5,8 +5,11 @@
 .zshrc.local
 
 # Copilot machine-local instruction layer (work/private context).
-# Broad match so a stray Linux/copilot/local/ or .copilot/local/ can't slip in.
+# Keep both the current standard path and the legacy custom path private.
+**/copilot/instructions/
 **/copilot/local/
+**/.copilot/instructions/
+**/.copilot/local/
 *.instructions.local.md
 .copilot-memory.md
 

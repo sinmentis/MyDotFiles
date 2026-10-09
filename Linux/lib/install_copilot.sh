@@ -5,8 +5,8 @@
 # Symlinks the repo's generic copilot-instructions.md + mcp-config.json and
 # user-level hooks/ into ~/.copilot. Machine-local instructions
 # (e.g. work context) are NOT managed here — keep those in
-# ~/.copilot/local/*.instructions.md and load them via the
-# COPILOT_CUSTOM_INSTRUCTIONS_DIRS env var (see .zshenv / .zshrc.local).
+# ~/.copilot/instructions/*.instructions.md, which Copilot CLI loads as
+# user-level instructions automatically.
 #
 # Idempotent. Invoked by ../install.sh, or standalone:
 #   bash lib/install_copilot.sh
@@ -18,7 +18,7 @@ DOTFILES_ROOT="$(cd "$DOTFILES_LINUX_DIR/.." && pwd)"
 source "$DOTFILES_LINUX_DIR/lib/common.sh"
 
 COPILOT_DIR="$HOME/.copilot"
-mkdir -p "$COPILOT_DIR"
+mkdir -p "$COPILOT_DIR/instructions"
 
 log "linking copilot-instructions.md + mcp-config.json..."
 link_dotfile "$DOTFILES_LINUX_DIR/copilot/copilot-instructions.md" \
@@ -37,4 +37,4 @@ link_dotfile "$DOTFILES_LINUX_DIR/copilot/hooks" \
 log "applying WSL clipboard (/copy) fix if needed..."
 bash "$DOTFILES_LINUX_DIR/lib/patch_copilot_clipboard.sh"
 
-log "done. Restart Copilot CLI to load hook changes; machine-local instructions stay in ~/.copilot/local."
+log "done. Restart Copilot CLI to load hook changes; machine-local instructions stay in ~/.copilot/instructions."

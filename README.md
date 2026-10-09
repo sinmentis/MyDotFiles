@@ -45,7 +45,7 @@ and never committed. Templates ship as `*.example`.
 |---------|-----------------------------------------|----------------------------------------|
 | zsh     | `Linux/.zshrc` sources it at top        | `~/.zshrc.local`                       |
 | git     | `Linux/.gitconfig` `[include]`s it      | `~/.gitconfig.local` (identity, creds) |
-| copilot | `Linux/copilot/copilot-instructions.md` | `~/.copilot/local/*.instructions.md`   |
+| copilot | `Linux/copilot/copilot-instructions.md` | `~/.copilot/instructions/*.instructions.md` |
 | copilot hooks | `Linux/copilot/hooks/` | n/a — generic user hooks are public-safe |
 
 Seed your local files from the examples:
@@ -70,12 +70,12 @@ run long-lived services under systemd instead of tmux.
 
 #### Copilot instruction layering
 
-GitHub Copilot CLI loads `**/*.instructions.md` from every directory listed in
-`COPILOT_CUSTOM_INSTRUCTIONS_DIRS` (comma-separated) and **appends** them onto
-`~/.copilot/copilot-instructions.md`. Keep generic rules in the tracked
-`copilot-instructions.md`; keep work/private context in
-`~/.copilot/local/*.instructions.md` and point the env var there (e.g. from
-`~/.zshenv`).
+GitHub Copilot CLI automatically loads user-level instructions from
+`~/.copilot/copilot-instructions.md` and
+`~/.copilot/instructions/**/*.instructions.md`. Keep generic rules in the
+tracked `copilot-instructions.md`; keep work/private context in
+`~/.copilot/instructions/*.instructions.md`. Files in that directory apply
+across repositories without `COPILOT_CUSTOM_INSTRUCTIONS_DIRS`.
 
 #### Copilot CLI tmux alerts
 
