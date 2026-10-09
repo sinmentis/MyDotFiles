@@ -2,6 +2,7 @@
 # tooling / per-machine config). Only the *.example templates are tracked.
 *.local
 .gitconfig.local
+.gitconfig-ado
 .zshrc.local
 
 # Copilot machine-local instruction layer (work/private context).

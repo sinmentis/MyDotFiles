@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 #
 # install_git.sh — git + git-delta, deploy the generic .gitconfig, and seed
-# ~/.gitconfig.local (identity + credential helpers) from the example.
+# machine-local identity and credential configuration from examples.
 #
 # The generic .gitconfig [include]s ~/.gitconfig.local, which holds per-machine
-# identity + credential helpers and is never committed. This script makes sure
-# that local file exists (seeded from the example) so git has an identity.
+# defaults and credential helpers. Azure DevOps remotes additionally include
+# ~/.gitconfig-ado so work repositories can use a separate identity.
 #
 # Idempotent. Invoked by ../install.sh, or standalone:
 #   bash lib/install_git.sh
@@ -24,14 +24,20 @@ apt_install git git-delta
 log "linking .gitconfig..."
 link_dotfile "$DOTFILES_LINUX_DIR/.gitconfig" "$HOME/.gitconfig"
 
-# 3. Seed ~/.gitconfig.local from the example if missing (never clobber).
+# 3. Seed machine-local files from examples if missing (never clobber).
 seed_local_file "$DOTFILES_LINUX_DIR/.gitconfig.local.example" "$HOME/.gitconfig.local"
+seed_local_file "$DOTFILES_LINUX_DIR/.gitconfig-ado.example" "$HOME/.gitconfig-ado"
 
 # 4. Nudge if identity is still the placeholder.
 if git config --global user.email | grep -q "you@example.com"; then
     warn "git identity is still the placeholder. Edit ~/.gitconfig.local:"
     warn "  git config -f ~/.gitconfig.local user.name  'Your Name'"
     warn "  git config -f ~/.gitconfig.local user.email 'you@example.com'"
+fi
+if git config -f "$HOME/.gitconfig-ado" user.email | grep -q "you@company.example"; then
+    warn "Azure DevOps identity is still the placeholder. Edit ~/.gitconfig-ado:"
+    warn "  git config -f ~/.gitconfig-ado user.name  'Your Work Name'"
+    warn "  git config -f ~/.gitconfig-ado user.email 'you@company.example'"
 fi
 
 log "done."

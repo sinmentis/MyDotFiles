@@ -100,3 +100,15 @@
 [credential "https://gist.github.com"]
 	helper = 
 	helper = !/usr/bin/gh auth git-credential
+[includeIf "hasconfig:remote.*.url:https://dev.azure.com/**"]
+	path = ~/.gitconfig-ado
+[includeIf "hasconfig:remote.*.url:https://*.visualstudio.com/**"]
+	path = ~/.gitconfig-ado
+[includeIf "hasconfig:remote.*.url:git@ssh.dev.azure.com:v3/**"]
+	path = ~/.gitconfig-ado
+[includeIf "hasconfig:remote.*.url:ssh://git@ssh.dev.azure.com/**"]
+	path = ~/.gitconfig-ado
+[includeIf "hasconfig:remote.*.url:git@vs-ssh.visualstudio.com:v3/**"]
+	path = ~/.gitconfig-ado
+[includeIf "hasconfig:remote.*.url:ssh://git@vs-ssh.visualstudio.com/**"]
+	path = ~/.gitconfig-ado

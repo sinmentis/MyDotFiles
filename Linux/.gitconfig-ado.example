@@ -1,0 +1,9 @@
+# ~/.gitconfig-ado — identity used only for Azure DevOps repositories.
+#
+# Linux/.gitconfig includes this file conditionally when a repository remote
+# points at dev.azure.com, visualstudio.com, ssh.dev.azure.com, or
+# vs-ssh.visualstudio.com.
+
+[user]
+	name = your-work-name
+	email = you@company.example
