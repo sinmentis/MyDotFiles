@@ -20,17 +20,24 @@ DOTFILES_LINUX_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$DOTFILES_LINUX_DIR/lib/common.sh"
 
 # 1. Packages. xclip only useful with an X display; install it anyway (tiny),
-#    the binding degrades gracefully without $DISPLAY.
-log "installing tmux + xclip..."
+#    the binding degrades gracefully without $DISPLAY. Python runs the
+#    copilot-tmux snapshot helper installed below.
+log "installing tmux + xclip + python3..."
 sudo apt update
-apt_install tmux xclip
+apt_install tmux xclip python3
 
 # 2. Deploy config.
 log "linking .tmux.conf..."
 link_dotfile "$DOTFILES_LINUX_DIR/.tmux.conf" "$HOME/.tmux.conf"
 
+# 3. Install local tmux utilities.
+log "linking copilot-tmux..."
+mkdir -p "$HOME/.local/bin"
+link_dotfile "$DOTFILES_LINUX_DIR/bin/copilot-tmux" \
+             "$HOME/.local/bin/copilot-tmux"
+
 if [ -z "${DISPLAY:-}" ]; then
     log "no \$DISPLAY detected (headless) — tmux clipboard via xclip will no-op."
 fi
 
-log "done. Start tmux with 'tmux' (or 'tmux a' to re-attach)."
+log "done. Start tmux with 'tmux' or manage Copilot snapshots with 'copilot-tmux'."
