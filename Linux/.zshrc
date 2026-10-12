@@ -175,7 +175,8 @@ alias gitst="git st"
 alias explorer="nautilus ."
 alias dmesg="sudo watch -n 0.1 'dmesg | tail -n $((LINES-6))'"
 alias detectMonitor="sudo service sddm restart"
-alias a="z rp; agency copilot --profile-only lazy --no-default-mcps --yolo"
+# Explicit --session-id: Copilot's /restart conflicts with Agency's default --new-session-id.
+alias a='z rp; agency copilot --profile-only lazy --no-default-mcps --session-id "$(uuidgen)" --yolo'
 
 ###################################
 # NVM
