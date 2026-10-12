@@ -43,8 +43,6 @@ Edit those files in place. Do not copy the examples over an existing setup.
 
 ## Other assets
 
-- [`Shared/copilot/standup.md`](Shared/copilot/standup.md): personal standup skill,
-  installed as `~/.copilot/skills/my-standup/SKILL.md` by the Copilot setup
 - [`Linux/bin/README.md`](Linux/bin/README.md): `copilot-tmux` and Playwright MCP
 - [`Linux/vm-prep/README.md`](Linux/vm-prep/README.md): Ubuntu VM preparation
 - [`Chrome/`](Chrome/): browser configuration exports
