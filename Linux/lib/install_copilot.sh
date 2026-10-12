@@ -3,7 +3,7 @@
 # install_copilot.sh — deploy generic GitHub Copilot CLI config into ~/.copilot.
 #
 # Symlinks the repo's generic copilot-instructions.md + mcp-config.json and
-# user-level hooks/ into ~/.copilot. Machine-local instructions
+# user-level hooks/ and the standup skill into ~/.copilot. Machine-local instructions
 # (e.g. work context) are NOT managed here — keep those in
 # ~/.copilot/instructions/*.instructions.md, which Copilot CLI loads as
 # user-level instructions automatically.
@@ -41,5 +41,9 @@ fi
 log "linking Copilot hooks..."
 link_dotfile "$DOTFILES_LINUX_DIR/copilot/hooks" \
              "$COPILOT_DIR/hooks"
+
+log "linking standup skill..."
+link_dotfile "$DOTFILES_ROOT/Shared/copilot/standup.md" \
+             "$COPILOT_DIR/skills/my-standup/SKILL.md"
 
 log "done. Restart Copilot CLI to load hook changes; machine-local instructions stay in ~/.copilot/instructions."
