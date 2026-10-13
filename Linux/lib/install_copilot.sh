@@ -3,7 +3,7 @@
 # install_copilot.sh — deploy generic GitHub Copilot CLI config into ~/.copilot.
 #
 # Symlinks the repo's generic copilot-instructions.md + mcp-config.json and
-# user-level hooks/ into ~/.copilot. Machine-local instructions
+# user-level hooks/ and extensions into ~/.copilot. Machine-local instructions
 # (e.g. work context) are NOT managed here — keep those in
 # ~/.copilot/instructions/*.instructions.md, which Copilot CLI loads as
 # user-level instructions automatically.
@@ -42,4 +42,8 @@ log "linking Copilot hooks..."
 link_dotfile "$DOTFILES_LINUX_DIR/copilot/hooks" \
              "$COPILOT_DIR/hooks"
 
-log "done. Restart Copilot CLI to load hook changes; machine-local instructions stay in ~/.copilot/instructions."
+log "linking animated tmux status extension..."
+link_dotfile "$DOTFILES_LINUX_DIR/copilot/extensions/tmux-status" \
+             "$COPILOT_DIR/extensions/tmux-status"
+
+log "done. Restart Copilot CLI to load hooks and extensions; machine-local instructions stay in ~/.copilot/instructions."

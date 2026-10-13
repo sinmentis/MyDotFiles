@@ -57,12 +57,15 @@ directory is created, but private instruction files are added manually.
 `install_copilot.sh` installs:
 
 - shared global instructions from `Shared/copilot/`
-- user-level hooks, including tmux alerts and session tracking
+- user-level hooks for session tracking
+- the `tmux-status` extension for animated running, waiting, and unread indicators
 - the tracked MCP configuration
 - the `playwright-mcp` launcher in `~/.local/bin`
 
-Restart Copilot CLI after hook changes. See [`bin/README.md`](bin/README.md) for
-session snapshot commands and Playwright profile settings.
+Restart Copilot CLI after hook or extension changes. Reload tmux with
+`tmux source-file ~/.tmux.conf` after status configuration changes.
+See [`bin/README.md`](bin/README.md) for status indicators, session snapshot
+commands, and Playwright profile settings.
 
 ## VM preparation
 
