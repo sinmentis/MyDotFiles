@@ -223,7 +223,7 @@ async function waitFor(check, description) {
     assert.fail(`Timed out waiting for ${description}`);
 }
 
-test("real tmux preserves window text while appending status indicators", {
+test("real tmux renders separated colored tabs while preserving indices, names, and indicators", {
     timeout: 15000,
 }, async () => {
     const directory = await mkdtemp(join(tmpdir(), "copilot-status-test-"));
@@ -235,7 +235,7 @@ test("real tmux preserves window text while appending status indicators", {
             env: environment,
             timeout: 3000,
         });
-        return result.stdout.trim();
+        return result.stdout.replace(/\r?\n$/, "");
     };
     let client;
     let controller;
@@ -244,6 +244,8 @@ test("real tmux preserves window text while appending status indicators", {
         await tmux("-f", "/dev/null", "new-session", "-d", "-s", "test", "-n", "a", "sleep 600");
         serverStarted = true;
         await tmux("source-file", config);
+        assert.equal(await tmux("show-options", "-gwv", "window-status-separator"), " | ");
+        assert.equal(await tmux("show-options", "-gv", "status-right"), " %m-%d %H:%M ");
         const pane = await tmux("new-window", "-d", "-t", "test", "-n", "Agent work", "-P",
             "-F", "#{pane_id}", "sleep 600");
         client = spawn("script", ["-q", "-c",
@@ -256,38 +258,49 @@ test("real tmux preserves window text while appending status indicators", {
         client.stderr.setEncoding("utf8").on("data", (chunk) => { screen += chunk; });
         await waitFor(async () => (await tmux("list-clients", "-F", "#{client_name}")) !== "",
             "the attached test terminal");
+        const background = (color) => new RegExp(`\\x1b\\[[0-9;]*48;5;${color}(?:;[0-9;]+)?m`);
+        await waitFor(() => screen.includes(" | ") && background(236).test(screen)
+            && background(33).test(screen), "visible separators with gray and blue tab backgrounds");
+        assert.match(screen, /\d{2}-\d{2} \d{2}:\d{2}/);
         const errors = [];
         const adapter = new TmuxStatus(pane, { socketPath });
         const originalText = await tmux("display-message", "-p", "-t", pane,
             "#{window_index}:#{window_name}");
+        const indexPrefix = originalText.slice(0, originalText.indexOf(":") + 1);
+        const windowName = originalText.slice(indexPrefix.length);
         controller = new StatusController(adapter, { onError: (error) => errors.push(error) });
         await controller.start();
         const label = async (format = "window-status-format") => {
             const rendered = await tmux("display-message", "-p", "-t", pane,
                 `#{E:${format}}`);
-            assert.ok(rendered.startsWith(originalText),
+            const nativeText = await tmux("display-message", "-p", "-t", pane,
+                "#W#{window_flags}");
+            assert.ok(rendered.startsWith(` ${indexPrefix}`) && rendered.endsWith(`${nativeText} `),
                 `Original window text ${JSON.stringify(originalText)} was replaced: ${rendered}`);
-            return rendered;
+            return rendered.slice(1, -1);
         };
-        await label();
+        assert.equal(await label(), originalText);
         assert.match(await tmux("display-message", "-p", "#{T:@copilot_status_clock}"), /^\d+$/);
         controller.handle(event("assistant.turn_start"));
         await controller.queue;
-        assert.ok((await label()).includes("\u{1f914}"));
+        assert.match(await label(), /^\d+:\u{1f914} [\u2800-\u28ff] /u);
+        assert.match(await label("window-status-current-format"), /^\d+:\u{1f914} [\u2800-\u28ff] /u);
         await waitFor(() => SPINNER_FRAMES.filter((frame) => screen.includes(frame)).length >= 3,
             "three spinner frames in the rendered status bar");
         assert.ok(screen.includes("Agent work"), "The terminal must render the original window name");
 
         controller.handle(event("user_input.requested", { requestId: "question" }));
         await controller.queue;
-        assert.ok((await label()).includes("\u{270b}"));
+        assert.ok((await label()).startsWith(`${indexPrefix}\u{270b} `));
         assert.ok(!(await label()).includes("\u{1f914}"));
         controller.handle(event("user_input.completed", { requestId: "question" }));
         await controller.queue;
         controller.handle(event("session.idle"));
         await controller.queue;
-        await waitFor(async () => (await label()).includes("\u{2705}"), "the unread check mark");
+        await waitFor(async () => (await label()).startsWith(`${indexPrefix}\u{2705} `),
+            "the unread check mark");
         assert.equal(await tmux("display-message", "-p", "-t", pane, "#{window_bell_flag}"), "1");
+        await waitFor(() => background(220).test(screen), "the yellow unread tab background");
         await tmux("select-window", "-t", pane);
         await waitFor(async () => !(await label()).includes("\u{2705}"), "unread acknowledgement");
         await label("window-status-current-format");
@@ -301,8 +314,8 @@ test("real tmux preserves window text while appending status indicators", {
         await siblingAdapter.claim();
         await siblingAdapter.publish("waiting", 0, Math.ceil(Date.now() / 1000) + LEASE_SECONDS);
         const combined = await label();
-        assert.ok(combined.includes("\u{1f914}"));
-        assert.ok(combined.includes("\u{270b}"));
+        assert.equal(combined.slice(indexPrefix.length, combined.indexOf(windowName)),
+            `\u{1f914} ${SPINNER_FRAMES[0]} \u{270b} `);
         await siblingAdapter.clear();
 
         const replacement = new TmuxStatus(pane, { socketPath });

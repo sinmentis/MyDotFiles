@@ -75,9 +75,15 @@ window labels:
 
 Viewing a window clears its unread indicator. A waiting indicator remains until
 the request is answered. Status is tracked per pane; a window label includes
-the indicators of its panes. The existing `index:window-name` text and native
-tmux flags remain intact; indicators are appended after that text. Idle windows
-keep their original text without an indicator. The selection style is unchanged.
+the indicators of its panes. The window index, name, and native tmux flags remain
+intact. Indicators appear between `index:` and the window name. Idle windows keep
+their original text without an indicator.
+
+Tabs have one space of padding on each side and a visible ` | ` separator.
+Inactive tabs have a dark-gray background, the active tab is blue, and unread
+alerts retain the yellow background. The right side shows a compact date and
+24-hour time, such as `10-14 09:35`. No theme plugins or special separator fonts
+are required.
 
 Animation stops while idle or waiting. Running and waiting indicators expire
 after about five seconds without a heartbeat, so a killed process cannot leave a
