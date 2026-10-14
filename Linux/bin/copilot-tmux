@@ -347,9 +347,14 @@ def resolve_launcher(root_pid, pane_title, pane_id, processes):
         if executable == "agency" and len(argv) > 1 and argv[1] == "copilot":
             agency_candidates.append((depth, pid, argv))
         if executable == "copilot":
-            session_id = option_value(argv, "--session-id") or option_value(
-                argv,
-                "--new-session-id",
+            # Restored panes are relaunched with --resume=<id>, not --session-id.
+            session_id = next(
+                (
+                    value
+                    for option in ("--session-id", "--new-session-id", "--resume", "-r")
+                    if valid_session_id(value := option_value(argv, option))
+                ),
+                None,
             )
             if session_id:
                 copilot_candidates.append((depth, pid, argv, session_id))

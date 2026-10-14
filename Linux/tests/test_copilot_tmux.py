@@ -141,6 +141,29 @@ class CopilotTmuxTests(unittest.TestCase):
         self.assertIn("--yolo", resolved["launcher"])
         self.assertNotIn("--new-session-id", resolved["launcher"])
 
+    @mock.patch.object(COPILOT_TMUX, "inuse_session_ids", return_value=set())
+    @mock.patch.object(
+        COPILOT_TMUX,
+        "copilot_home_from_process",
+        return_value=Path("/tmp/copilot-home"),
+    )
+    @mock.patch.object(COPILOT_TMUX, "pane_option", return_value=None)
+    def test_resolve_launcher_detects_restored_resume_pane(
+        self,
+        _pane_option,
+        _home,
+        _inuse,
+    ):
+        processes = {
+            10: {"ppid": 1, "argv": ["agency", "copilot", "--yolo", f"--resume={SESSION_A}"]},
+            11: {"ppid": 10, "argv": ["/opt/copilot", f"--resume={SESSION_A}"]},
+        }
+
+        resolved = COPILOT_TMUX.resolve_launcher(10, "", "%1", processes)
+
+        self.assertEqual(resolved["session_id"], SESSION_A)
+        self.assertEqual(resolved["launcher"][-1], "--yolo")
+
     def test_session_start_hook_records_pane_binding(self):
         payload = io.StringIO(json.dumps({"sessionId": SESSION_B, "source": "resume"}))
         with (
