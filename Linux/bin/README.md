@@ -17,7 +17,10 @@ Useful options:
 copilot-tmux save --tmux-session NAME
 copilot-tmux restore --dry-run
 copilot-tmux restore --no-attach
+copilot-tmux --version
 ```
+
+Output is colored when writing to a terminal. Set `NO_COLOR=1` to disable it.
 
 The command dynamically discovers tmux panes and their process trees. It reads
 the current Copilot session ID from the documented `sessionStart` hook. Live

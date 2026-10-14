@@ -5,6 +5,7 @@ import json
 import os
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest import mock
 
@@ -163,6 +164,29 @@ class CopilotTmuxTests(unittest.TestCase):
 
         self.assertEqual(resolved["session_id"], SESSION_A)
         self.assertEqual(resolved["launcher"][-1], "--yolo")
+
+    def test_version_flag_and_plain_table(self):
+        output = io.StringIO()
+        with redirect_stdout(output), self.assertRaises(SystemExit):
+            COPILOT_TMUX.build_parser().parse_args(["--version"])
+        self.assertEqual(
+            output.getvalue().strip(),
+            f"copilot-tmux {COPILOT_TMUX.__version__}",
+        )
+
+        output = io.StringIO()
+        entry = {
+            "tmux_session": "work",
+            "window_index": 2,
+            "window_name": "Agent",
+            "session_id": SESSION_A,
+            "cwd": str(Path.home() / "repo"),
+            "metadata": {"summary": "Fix things"},
+        }
+        with redirect_stdout(output):
+            COPILOT_TMUX.print_entries([entry])
+        self.assertNotIn("\033[", output.getvalue())
+        self.assertIn(f"work:2  Agent  {SESSION_A[:8]}  ~/repo", output.getvalue())
 
     def test_session_start_hook_records_pane_binding(self):
         payload = io.StringIO(json.dumps({"sessionId": SESSION_B, "source": "resume"}))
