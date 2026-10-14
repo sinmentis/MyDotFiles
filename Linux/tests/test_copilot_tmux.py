@@ -229,6 +229,104 @@ class CopilotTmuxTests(unittest.TestCase):
         self.assertIn("COPILOT_HOME=/tmp/custom-copilot", command)
         self.assertIn(f"--resume={SESSION_B}", command)
 
+    def test_save_and_restore_preserve_changed_session_directories(self):
+        for metadata_state in ("changed", "missing", "empty"):
+            with (
+                self.subTest(metadata_state=metadata_state),
+                tempfile.TemporaryDirectory() as directory,
+            ):
+                root = Path(directory)
+                copilot_home = root / "copilot-home"
+                state_dir = root / "snapshots"
+                snapshot_path = state_dir / "snapshot.json"
+                initial_dirs = [root / f"initial directory {index}" for index in range(2)]
+                current_dirs = [root / f"current directory {index}" for index in range(2)]
+                workspace_paths = []
+                panes = []
+                launchers = []
+                for index, session_id in enumerate((SESSION_A, SESSION_B)):
+                    initial_dirs[index].mkdir()
+                    current_dirs[index].mkdir()
+                    workspace = copilot_home / "session-state" / session_id / "workspace.yaml"
+                    workspace.parent.mkdir(parents=True)
+                    workspace.write_text(f"cwd: {json.dumps(str(initial_dirs[index]))}\n")
+                    workspace_paths.append(workspace)
+                    panes.append({
+                        "tmux_session": "snapshot-test",
+                        "window_index": index,
+                        "window_name": f"Agent {index}",
+                        "window_active": index == 0,
+                        "window_panes": 1,
+                        "pane_id": f"%{index}",
+                        "pane_pid": 100 + index,
+                        "pane_title": f"Agent {index}",
+                        "cwd": str(initial_dirs[index]),
+                    })
+                    launchers.append({
+                        "session_id": session_id,
+                        "copilot_home": str(copilot_home),
+                        "launcher": ["agency", "copilot", "--profile-only", "lazy", "--yolo"],
+                    })
+
+                output = io.StringIO()
+                with (
+                    mock.patch.object(COPILOT_TMUX, "STATE_DIR", state_dir),
+                    mock.patch.object(COPILOT_TMUX, "SNAPSHOT_PATH", snapshot_path),
+                    mock.patch.object(COPILOT_TMUX, "TMUX", "/usr/bin/tmux"),
+                    mock.patch.object(COPILOT_TMUX, "process_table", return_value={}),
+                    mock.patch.object(COPILOT_TMUX, "list_tmux_panes", return_value=panes),
+                    mock.patch.object(
+                        COPILOT_TMUX, "resolve_launcher", side_effect=launchers * 2,
+                    ),
+                    redirect_stdout(output),
+                ):
+                    save_args = COPILOT_TMUX.build_parser().parse_args(["save"])
+                    COPILOT_TMUX.save_snapshot(save_args)
+                    for index, workspace in enumerate(workspace_paths):
+                        content = "name: Current session\n"
+                        if metadata_state == "changed":
+                            content += f"cwd: {json.dumps(str(current_dirs[index]))}\n"
+                        elif metadata_state == "empty":
+                            content += 'cwd: ""\n'
+                        workspace.write_text(content)
+                    output.seek(0)
+                    output.truncate()
+                    COPILOT_TMUX.save_snapshot(save_args)
+                    COPILOT_TMUX.show_snapshot(None)
+                    entries = json.loads(snapshot_path.read_text())["entries"]
+                    expected = [
+                        str(path) for path in
+                        (current_dirs if metadata_state == "changed" else initial_dirs)
+                    ]
+                    self.assertEqual([entry["cwd"] for entry in entries], expected)
+                    for cwd in expected:
+                        self.assertIn(cwd, output.getvalue())
+
+                    commands = []
+                    with (
+                        mock.patch.object(
+                            COPILOT_TMUX, "existing_tmux_sessions", return_value=set(),
+                        ),
+                        mock.patch.object(
+                            COPILOT_TMUX, "display_tmux_command", side_effect=commands.append,
+                        ),
+                    ):
+                        restore_args = COPILOT_TMUX.build_parser().parse_args(
+                            ["restore", "--dry-run"],
+                        )
+                        COPILOT_TMUX.restore_snapshot(restore_args)
+                    windows = [
+                        command for command in commands
+                        if command[1] in ("new-session", "new-window")
+                    ]
+                    self.assertEqual(
+                        [command[command.index("-c") + 1] for command in windows],
+                        expected,
+                    )
+                    for command, session_id in zip(windows, (SESSION_A, SESSION_B)):
+                        self.assertIn(f"--resume={session_id}", command[-1])
+                        self.assertIn("--profile-only lazy --yolo", command[-1])
+
     def test_failed_snapshot_publish_preserves_previous_file(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             state_dir = Path(temporary_directory)

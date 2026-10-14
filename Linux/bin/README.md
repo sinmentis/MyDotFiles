@@ -27,6 +27,10 @@ the current Copilot session ID from the documented `sessionStart` hook. Live
 session-state inspection remains as a fallback for sessions started before the
 hook was installed.
 
+Snapshots use each Copilot session's current working directory, including
+directory changes made after launch. The pane's directory remains a fallback
+when no session directory is recorded.
+
 Snapshots are stored with owner-only permissions at:
 
 ```text

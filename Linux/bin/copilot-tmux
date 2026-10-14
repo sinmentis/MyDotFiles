@@ -591,10 +591,13 @@ def save_snapshot(args):
                 f"Copilot session directory does not exist: {session_dir}"
             )
 
+        # Copilot directory changes update session metadata, not the tmux process cwd.
+        metadata = session_metadata(session_id, copilot_home)
         entry = {
             **pane,
             **launcher,
-            "metadata": session_metadata(session_id, copilot_home),
+            "cwd": metadata.get("cwd") or pane["cwd"],
+            "metadata": metadata,
         }
         entries.append(entry)
 
