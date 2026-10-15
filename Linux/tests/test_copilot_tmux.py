@@ -21,6 +21,44 @@ SESSION_B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
 
 
 class CopilotTmuxTests(unittest.TestCase):
+    def test_missing_tmux_server_returns_empty_collections(self):
+        messages = [
+            "no server running on /tmp/tmux-1000/default",
+            "failed to connect to server: No such file or directory",
+            "error connecting to /tmp/tmux-1000/default (No such file or directory)",
+            "error connecting to /tmp/tmux-1000/default (Connection refused)",
+        ]
+        for message in messages:
+            for function, expected in (
+                (COPILOT_TMUX.list_tmux_panes, []),
+                (COPILOT_TMUX.existing_tmux_sessions, set()),
+            ):
+                with self.subTest(message=message, function=function.__name__):
+                    with mock.patch.object(
+                        COPILOT_TMUX, "tmux_output",
+                        side_effect=COPILOT_TMUX.CopilotTmuxError(message),
+                    ):
+                        self.assertEqual(function(), expected)
+
+    def test_other_tmux_errors_are_not_treated_as_missing_server(self):
+        messages = [
+            "error connecting to /tmp/tmux-1000/default (Permission denied)",
+            "failed to connect to server: Permission denied",
+            "error connecting to /tmp/tmux-1000/default (Resource temporarily unavailable)",
+            "unknown command: list-panes",
+        ]
+        for message in messages:
+            for function in (
+                COPILOT_TMUX.list_tmux_panes,
+                COPILOT_TMUX.existing_tmux_sessions,
+            ):
+                with self.subTest(message=message, function=function.__name__):
+                    error = COPILOT_TMUX.CopilotTmuxError(message)
+                    with mock.patch.object(COPILOT_TMUX, "tmux_output", side_effect=error):
+                        with self.assertRaises(COPILOT_TMUX.CopilotTmuxError) as raised:
+                            function()
+                        self.assertIs(raised.exception, error)
+
     def test_strip_session_control_preserves_launcher_flags(self):
         argv = [
             "agency",

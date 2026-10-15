@@ -48,6 +48,8 @@ Each `save` replaces the previous snapshot, including a filtered
 `save --tmux-session NAME`. Restore after the saved tmux sessions have exited;
 existing tmux session names are never overwritten. Preview recovery commands
 with `restore --dry-run`.
+An absent tmux server is treated as having no existing panes or sessions.
+Permission and other connection errors are reported instead.
 
 When a Copilot pane has non-Copilot sibling panes, restore recreates the
 Copilot window as a single pane. The sibling panes and their running commands

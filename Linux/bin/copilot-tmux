@@ -489,6 +489,17 @@ def session_metadata(session_id, copilot_home=DEFAULT_COPILOT_HOME):
     return metadata
 
 
+def tmux_server_missing(error):
+    message = str(error)
+    return message.startswith("no server running") or (
+        message.startswith(("failed to connect", "error connecting to"))
+        and any(
+            reason in message
+            for reason in ("No such file or directory", "Connection refused")
+        )
+    )
+
+
 def list_tmux_panes():
     format_string = FIELD_SEPARATOR.join(
         [
@@ -507,7 +518,7 @@ def list_tmux_panes():
     try:
         output = tmux_output("list-panes", "-a", "-F", format_string)
     except CopilotTmuxError as error:
-        if "no server running" in str(error) or "failed to connect" in str(error):
+        if tmux_server_missing(error):
             return []
         raise
 
@@ -690,7 +701,7 @@ def existing_tmux_sessions():
     try:
         output = tmux_output("list-sessions", "-F", "#{session_name}")
     except CopilotTmuxError as error:
-        if "no server running" in str(error) or "failed to connect" in str(error):
+        if tmux_server_missing(error):
             return set()
         raise
     return set(output.splitlines())
