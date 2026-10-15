@@ -88,6 +88,9 @@ are required.
 Animation stops while idle or waiting. Running and waiting indicators expire
 after about five seconds without a heartbeat, so a killed process cannot leave a
 permanent spinner. Normal shutdown removes the pane's status options.
+Temporary process-spawn failures (`EAGAIN`) are reported once per outage and
+retried every second. Indicators recover automatically when tmux commands can
+run again; other command failures stop updates and report the error.
 
 The extension replaces the older `tmux-alerts.json` bell hooks. It requires a
 Copilot CLI version with extension support and uses the CLI's bundled SDK;

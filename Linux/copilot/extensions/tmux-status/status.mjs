@@ -242,6 +242,7 @@ export class StatusController {
         this.renderQueued = false;
         this.bells = 0;
         this.closed = false;
+        this.retrying = false;
     }
 
     async start() {
@@ -257,7 +258,8 @@ export class StatusController {
     }
 
     updateTimer() {
-        const interval = this.tracker.state === "running" ? FRAME_INTERVAL_MS
+        const interval = this.retrying ? 1000
+            : this.tracker.state === "running" ? FRAME_INTERVAL_MS
             : this.tracker.state === "waiting" ? 1000 : undefined;
         if (interval === this.interval) {
             return;
@@ -308,10 +310,31 @@ export class StatusController {
                 ? Math.floor(this.now() / 1000) + LEASE_SECONDS : 0;
             await this.tmux.publish(state, this.frame, until);
             if (!this.closed && this.bells) {
-                this.bells = 0;
+                const bells = this.bells;
                 await this.tmux.ring();
+                this.bells -= bells;
             }
-        }).catch((error) => this.fail(error));
+            if (this.retrying && !this.closed) {
+                this.retrying = false;
+                this.updateTimer();
+            }
+        }).catch((error) => this.retryOrFail(error));
+    }
+
+    async retryOrFail(error) {
+        if (error.code !== "EAGAIN") {
+            await this.fail(error);
+            return;
+        }
+        if (this.closed) {
+            return;
+        }
+        const report = !this.retrying;
+        this.retrying = true;
+        this.updateTimer();
+        if (report) {
+            await this.onError(error);
+        }
     }
 
     async fail(error) {

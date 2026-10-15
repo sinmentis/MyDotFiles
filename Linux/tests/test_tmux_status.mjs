@@ -212,6 +212,78 @@ test("tmux failures are reported and stop the timer", async () => {
     assert.equal(fixture.cleared(), 1);
 });
 
+test("temporary spawn failures retry and restore the running indicator", async () => {
+    const fixture = controllerFixture();
+    await fixture.controller.start();
+    const publish = fixture.adapter.publish;
+    let failures = 3;
+    fixture.adapter.publish = async (...args) => {
+        if (failures-- > 0) {
+            throw Object.assign(new Error("spawn tmux EAGAIN"), { code: "EAGAIN" });
+        }
+        await publish(...args);
+    };
+    fixture.controller.handle(event("assistant.turn_start"));
+    await fixture.controller.queue;
+    assert.equal(fixture.controller.closed, false);
+    assert.equal(fixture.cleared(), 0);
+    assert.equal(fixture.errors.length, 1);
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+        const [{ callback, interval }] = fixture.scheduled.values();
+        assert.equal(interval, 1000);
+        callback();
+        await fixture.controller.queue;
+    }
+    assert.equal(fixture.errors.length, 1);
+    assert.equal(fixture.frames.at(-1).state, "running");
+    assert.equal(fixture.frames.at(-1).until, 100 + LEASE_SECONDS);
+    assert.equal([...fixture.scheduled.values()][0].interval, FRAME_INTERVAL_MS);
+    fixture.controller.handle(event("session.idle"));
+    await fixture.controller.queue;
+    assert.equal(fixture.frames.at(-1).state, "done");
+    assert.equal(fixture.bells.length, 1);
+    await fixture.controller.stop();
+});
+
+test("temporary spawn failures retry terminal states without losing attention bells", async () => {
+    for (const terminal of ["session.idle", "abort"]) {
+        const fixture = controllerFixture();
+        await fixture.controller.start();
+        fixture.controller.handle(event("assistant.turn_start"));
+        await fixture.controller.queue;
+        const publish = fixture.adapter.publish;
+        fixture.adapter.publish = async () => {
+            throw Object.assign(new Error("spawn tmux EAGAIN"), { code: "EAGAIN" });
+        };
+        fixture.controller.handle(event(terminal));
+        await fixture.controller.queue;
+        assert.equal(fixture.controller.closed, false);
+        const [{ callback, interval }] = fixture.scheduled.values();
+        assert.equal(interval, 1000);
+        fixture.adapter.publish = publish;
+        callback();
+        await fixture.controller.queue;
+        assert.equal(fixture.frames.at(-1).state, terminal === "abort" ? "idle" : "done");
+        assert.equal(fixture.bells.length, terminal === "abort" ? 0 : 1);
+        assert.equal(fixture.scheduled.size, 0);
+        await fixture.controller.stop();
+    }
+});
+
+test("shutdown during a temporary failure stops retries", async () => {
+    const fixture = controllerFixture();
+    await fixture.controller.start();
+    fixture.adapter.publish = async () => {
+        throw Object.assign(new Error("spawn tmux EAGAIN"), { code: "EAGAIN" });
+    };
+    fixture.controller.handle(event("assistant.turn_start"));
+    await fixture.controller.queue;
+    assert.equal(fixture.scheduled.size, 1);
+    await fixture.controller.stop();
+    assert.equal(fixture.scheduled.size, 0);
+    assert.equal(fixture.cleared(), 1);
+});
+
 async function waitFor(check, description) {
     const deadline = Date.now() + 3000;
     while (Date.now() < deadline) {
@@ -288,6 +360,22 @@ test("real tmux renders separated colored tabs while preserving indices, names, 
         await waitFor(() => SPINNER_FRAMES.filter((frame) => screen.includes(frame)).length >= 3,
             "three spinner frames in the rendered status bar");
         assert.ok(screen.includes("Agent work"), "The terminal must render the original window name");
+
+        const command = adapter.command.bind(adapter);
+        adapter.command = async () => {
+            throw Object.assign(new Error("spawn tmux EAGAIN"), { code: "EAGAIN" });
+        };
+        controller.render();
+        await controller.queue;
+        await tmux("set-option", "-p", "-t", pane, "@copilot_status_until",
+            String(Math.floor(Date.now() / 1000) - 1));
+        assert.ok(!(await label()).includes("\u{1f914}"));
+        assert.equal(errors.length, 1);
+        assert.equal(errors[0].code, "EAGAIN");
+        adapter.command = command;
+        await waitFor(async () => (await label()).includes("\u{1f914}"),
+            "the thinking indicator recovering after a temporary spawn failure");
+        errors.length = 0;
 
         controller.handle(event("user_input.requested", { requestId: "question" }));
         await controller.queue;
