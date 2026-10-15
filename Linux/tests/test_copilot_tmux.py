@@ -3,6 +3,9 @@ from importlib.machinery import SourceFileLoader
 import io
 import json
 import os
+import signal
+import subprocess
+import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -453,6 +456,184 @@ class CopilotTmuxTests(unittest.TestCase):
 
             self.assertEqual(snapshot_path.read_text(), "old snapshot\n")
             self.assertFalse(snapshot_path.with_suffix(".json.tmp").exists())
+
+
+class ShutdownTests(unittest.TestCase):
+    def setUp(self):
+        self.entries = [
+            {"copilot_pid": 101, "session_id": SESSION_A, "copilot_home": "/tmp/home",
+             "pane_id": "%1", "tmux_session": "work", "window_index": 0},
+            {"copilot_pid": 102, "session_id": SESSION_B, "copilot_home": "/tmp/home",
+             "pane_id": "%2", "tmux_session": "work", "window_index": 1},
+        ]
+        self.snapshot = {"entries": self.entries}
+        self.discover = self.enterContext(mock.patch.object(
+            COPILOT_TMUX, "discover_snapshot", return_value=self.snapshot,
+        ))
+        self.write = self.enterContext(mock.patch.object(COPILOT_TMUX, "write_snapshot"))
+        self.enterContext(mock.patch.object(COPILOT_TMUX, "print_entries"))
+        self.enterContext(mock.patch.object(COPILOT_TMUX, "find_copilot_ancestor", return_value=None))
+        self.validate = self.enterContext(mock.patch.object(COPILOT_TMUX, "validate_shutdown_target"))
+        self.open = self.enterContext(mock.patch.object(
+            COPILOT_TMUX.os, "pidfd_open", side_effect=[41, 42],
+        ))
+        self.close = self.enterContext(mock.patch.object(COPILOT_TMUX.os, "close"))
+        self.send = self.enterContext(mock.patch.object(COPILOT_TMUX.signal, "pidfd_send_signal"))
+        self.select = self.enterContext(mock.patch.object(
+            COPILOT_TMUX.select, "select",
+            side_effect=[([], [], []), ([41], [], []), ([], [], []), ([42], [], [])],
+        ))
+        self.output = self.enterContext(redirect_stdout(io.StringIO()))
+
+    def args(self, *options):
+        return COPILOT_TMUX.build_parser().parse_args(["shutdown", *options])
+
+    def test_shutdown_saves_before_sequential_signals_and_waits(self):
+        order = mock.Mock()
+        order.attach_mock(self.write, "save")
+        order.attach_mock(self.send, "signal")
+        order.attach_mock(self.select, "wait")
+        COPILOT_TMUX.shutdown_sessions(self.args("--yes", "--tmux-session", "work"))
+        self.assertEqual(self.discover.call_args.args[0].tmux_session, "work")
+        self.assertEqual(order.mock_calls, [
+            mock.call.save(self.snapshot),
+            mock.call.wait([41], [], [], 0),
+            mock.call.signal(41, signal.SIGTERM),
+            mock.call.wait([41], [], [], COPILOT_TMUX.SHUTDOWN_TIMEOUT_SECONDS),
+            mock.call.wait([42], [], [], 0),
+            mock.call.signal(42, signal.SIGTERM),
+            mock.call.wait([42], [], [], COPILOT_TMUX.SHUTDOWN_TIMEOUT_SECONDS),
+        ])
+        self.assertEqual(self.validate.call_count, 4)
+        self.assertEqual(self.close.call_args_list, [mock.call(42), mock.call(41)])
+
+    def test_dry_run_neither_saves_nor_opens_or_signals_processes(self):
+        COPILOT_TMUX.shutdown_sessions(self.args("--dry-run"))
+        self.write.assert_not_called()
+        self.open.assert_not_called()
+        self.send.assert_not_called()
+
+    def test_save_failure_does_not_stop_any_process(self):
+        self.write.side_effect = OSError("disk full")
+        with self.assertRaisesRegex(COPILOT_TMUX.CopilotTmuxError, "disk full"):
+            COPILOT_TMUX.shutdown_sessions(self.args("--yes"))
+        self.send.assert_not_called()
+        self.assertEqual(self.close.call_count, 2)
+
+    def test_changed_target_aborts_before_save(self):
+        self.validate.side_effect = COPILOT_TMUX.CopilotTmuxError("Target changed")
+        with self.assertRaisesRegex(COPILOT_TMUX.CopilotTmuxError, "Target changed"):
+            COPILOT_TMUX.shutdown_sessions(self.args("--yes"))
+        self.write.assert_not_called()
+        self.send.assert_not_called()
+        self.close.assert_called_once_with(41)
+
+    def test_target_is_revalidated_after_save(self):
+        self.validate.side_effect = [None, None, COPILOT_TMUX.CopilotTmuxError("Target changed")]
+        with self.assertRaisesRegex(COPILOT_TMUX.CopilotTmuxError, "Target changed"):
+            COPILOT_TMUX.shutdown_sessions(self.args("--yes"))
+        self.write.assert_called_once()
+        self.send.assert_not_called()
+
+    def test_timeout_stops_sequence_without_force_kill(self):
+        self.select.side_effect = [([], [], []), ([], [], [])]
+        with self.assertRaisesRegex(COPILOT_TMUX.CopilotTmuxError, "Timed out"):
+            COPILOT_TMUX.shutdown_sessions(self.args("--yes"))
+        self.send.assert_called_once_with(41, signal.SIGTERM)
+        self.assertEqual(self.close.call_count, 2)
+
+    def test_exited_process_is_not_signalled(self):
+        self.select.side_effect = [([41], [], []), ([42], [], [])]
+        COPILOT_TMUX.shutdown_sessions(self.args("--yes"))
+        self.send.assert_not_called()
+
+    def test_cannot_shutdown_own_copilot_ancestor(self):
+        with mock.patch.object(COPILOT_TMUX, "find_copilot_ancestor", return_value=101):
+            with self.assertRaisesRegex(COPILOT_TMUX.CopilotTmuxError, "separate shell"):
+                COPILOT_TMUX.shutdown_sessions(self.args("--yes"))
+        self.write.assert_not_called()
+        self.send.assert_not_called()
+
+    def test_declined_confirmation_does_nothing(self):
+        with (
+            mock.patch.object(COPILOT_TMUX.sys.stdin, "isatty", return_value=True),
+            mock.patch("builtins.input", return_value="n"),
+        ):
+            COPILOT_TMUX.shutdown_sessions(self.args())
+        self.write.assert_not_called()
+        self.open.assert_not_called()
+
+    def test_noninteractive_shutdown_requires_yes(self):
+        with mock.patch.object(COPILOT_TMUX.sys.stdin, "isatty", return_value=False):
+            with self.assertRaisesRegex(COPILOT_TMUX.CopilotTmuxError, "--yes"):
+                COPILOT_TMUX.shutdown_sessions(self.args())
+        self.write.assert_not_called()
+        self.send.assert_not_called()
+
+    def test_signal_errors_stop_sequence(self):
+        self.send.side_effect = PermissionError("permission denied")
+        with self.assertRaisesRegex(COPILOT_TMUX.CopilotTmuxError, "Cannot stop"):
+            COPILOT_TMUX.shutdown_sessions(self.args("--yes"))
+        self.send.assert_called_once_with(41, signal.SIGTERM)
+
+
+class ShutdownTargetTests(unittest.TestCase):
+    def test_revalidation_checks_process_session_and_home(self):
+        entry = {"pane_id": "%1", "copilot_pid": 101,
+                 "session_id": SESSION_A, "copilot_home": "/tmp/home"}
+        pane = {"pane_id": "%1", "pane_pid": 100, "pane_title": "Copilot"}
+        for change in ({}, {"copilot_pid": 102}, {"session_id": SESSION_B},
+                       {"copilot_home": "/tmp/other"}):
+            with (
+                self.subTest(change=change),
+                mock.patch.object(COPILOT_TMUX, "list_tmux_panes", return_value=[pane]),
+                mock.patch.object(COPILOT_TMUX, "process_table", return_value={}),
+                mock.patch.object(COPILOT_TMUX, "resolve_launcher", return_value={**entry, **change}),
+            ):
+                if change:
+                    with self.assertRaisesRegex(COPILOT_TMUX.CopilotTmuxError, "Target changed"):
+                        COPILOT_TMUX.validate_shutdown_target(entry)
+                else:
+                    COPILOT_TMUX.validate_shutdown_target(entry)
+
+    @unittest.skipUnless(
+        hasattr(os, "pidfd_open") and hasattr(signal, "pidfd_send_signal"),
+        "Linux pidfds are required",
+    )
+    def test_real_process_gets_sigterm_and_finishes_cleanup_before_next_target(self):
+        with tempfile.TemporaryDirectory() as directory:
+            marker = Path(directory) / "flushed"
+            code = (
+                "import pathlib, signal, sys, time\n"
+                f"marker = pathlib.Path({str(marker)!r})\n"
+                "def stop(*_):\n"
+                "    marker.write_text('flushed')\n"
+                "    sys.exit(0)\n"
+                "signal.signal(signal.SIGTERM, stop)\n"
+                "print('ready', flush=True)\n"
+                "while True: time.sleep(1)\n"
+            )
+            child = subprocess.Popen([sys.executable, "-c", code], stdout=subprocess.PIPE, text=True)
+            try:
+                self.assertEqual(child.stdout.readline().strip(), "ready")
+                entry = {"copilot_pid": child.pid, "tmux_session": "test", "window_index": 0}
+                with (
+                    mock.patch.object(COPILOT_TMUX, "discover_snapshot", return_value={"entries": [entry]}),
+                    mock.patch.object(COPILOT_TMUX, "print_entries"),
+                    mock.patch.object(COPILOT_TMUX, "write_snapshot"),
+                    mock.patch.object(COPILOT_TMUX, "find_copilot_ancestor", return_value=None),
+                    mock.patch.object(COPILOT_TMUX, "validate_shutdown_target"),
+                    redirect_stdout(io.StringIO()),
+                ):
+                    args = COPILOT_TMUX.build_parser().parse_args(["shutdown", "--yes"])
+                    COPILOT_TMUX.shutdown_sessions(args)
+                self.assertEqual(marker.read_text(), "flushed")
+                self.assertEqual(child.wait(timeout=2), 0)
+            finally:
+                if child.poll() is None:
+                    child.kill()
+                    child.wait()
+                child.stdout.close()
 
 
 if __name__ == "__main__":

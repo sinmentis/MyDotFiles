@@ -6,13 +6,16 @@ import argparse
 import json
 import os
 import re
+import select
 import shlex
 import shutil
+import signal
 import sqlite3
 import subprocess
 import sys
 import uuid
 from collections import defaultdict, deque
+from contextlib import ExitStack
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -31,6 +34,7 @@ FIELD_SEPARATOR = "__COPILOT_TMUX_FIELD__"
 TMUX_SESSION_OPTION = "@copilot_session_id"
 TMUX_HOME_OPTION = "@copilot_home"
 TMUX_PID_OPTION = "@copilot_pid"
+SHUTDOWN_TIMEOUT_SECONDS = 30
 SESSION_ID_PATTERN = re.compile(
     r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
     re.IGNORECASE,
@@ -576,7 +580,7 @@ def write_snapshot(snapshot):
         raise
 
 
-def save_snapshot(args):
+def discover_snapshot(args):
     processes = process_table()
     entries = []
     copilot_windows = {}
@@ -640,11 +644,104 @@ def save_snapshot(args):
         "entries": entries,
     }
 
-    write_snapshot(snapshot)
+    return snapshot
 
+
+def save_snapshot(args):
+    snapshot = discover_snapshot(args)
+    write_snapshot(snapshot)
+    entries = snapshot["entries"]
     success(f"Saved {len(entries)} Copilot sessions")
     print(dim(f"  {short_path(SNAPSHOT_PATH)}"))
     print_entries(entries)
+
+
+def validate_shutdown_target(entry):
+    pane = next(
+        (pane for pane in list_tmux_panes() if pane["pane_id"] == entry["pane_id"]),
+        None,
+    )
+    launcher = resolve_launcher(
+        pane["pane_pid"], pane["pane_title"], pane["pane_id"], process_table(),
+    ) if pane else None
+    if not launcher or any(
+        launcher[key] != entry[key]
+        for key in ("copilot_pid", "session_id", "copilot_home")
+    ):
+        raise CopilotTmuxError(
+            f'Target changed in pane {entry["pane_id"]}; shutdown stopped.'
+        )
+
+
+def shutdown_sessions(args):
+    snapshot = discover_snapshot(args)
+    entries = snapshot["entries"]
+    print_entries(entries)
+    if args.dry_run:
+        print("\nWould save this snapshot, then send SIGTERM to each Copilot process.")
+        return
+    if find_copilot_ancestor() in {entry["copilot_pid"] for entry in entries}:
+        raise CopilotTmuxError(
+            "Run shutdown from a separate shell, not from a targeted Copilot session."
+        )
+    if not hasattr(os, "pidfd_open") or not hasattr(signal, "pidfd_send_signal"):
+        raise CopilotTmuxError(
+            "Safe shutdown requires Linux pidfd support in Python and the kernel."
+        )
+    if not args.yes:
+        if not sys.stdin.isatty():
+            raise CopilotTmuxError("Shutdown requires confirmation; use --yes to confirm.")
+        answer = input(
+            f"\nSave and stop {len(entries)} Copilot sessions? "
+            "Running tasks will be interrupted. [y/N] "
+        )
+        if answer.strip().lower() not in {"y", "yes"}:
+            print("Shutdown cancelled; nothing was saved or stopped.")
+            return
+
+    with ExitStack() as cleanup:
+        targets = []
+        for entry in entries:
+            try:
+                descriptor = os.pidfd_open(entry["copilot_pid"])
+            except OSError as error:
+                raise CopilotTmuxError(
+                    f'Cannot open Copilot process {entry["copilot_pid"]}: {error}'
+                ) from error
+            cleanup.callback(os.close, descriptor)
+            validate_shutdown_target(entry)
+            targets.append((entry, descriptor))
+
+        try:
+            write_snapshot(snapshot)
+        except OSError as error:
+            raise CopilotTmuxError(
+                f"Cannot save snapshot: {error}. No sessions were stopped."
+            ) from error
+        success(f"Saved {len(entries)} Copilot sessions")
+        print(dim(f"  {short_path(SNAPSHOT_PATH)}"))
+        for entry, descriptor in targets:
+            label = f'{entry["tmux_session"]}:{entry["window_index"]}'
+            if select.select([descriptor], [], [], 0)[0]:
+                success(f"Already exited {label}")
+                continue
+            validate_shutdown_target(entry)
+            try:
+                signal.pidfd_send_signal(descriptor, signal.SIGTERM)
+            except ProcessLookupError:
+                success(f"Already exited {label}")
+                continue
+            except OSError as error:
+                raise CopilotTmuxError(
+                    f"Cannot stop {label}: {error}. Remaining sessions were not stopped."
+                ) from error
+            if not select.select([descriptor], [], [], SHUTDOWN_TIMEOUT_SECONDS)[0]:
+                raise CopilotTmuxError(
+                    f"Timed out waiting for {label} to exit. No process was force-killed; "
+                    "remaining sessions were not stopped. Do not shut down WSL yet."
+                )
+            success(f"Stopped {label}")
+    success("All targeted Copilot processes exited; snapshot kept for restore")
 
 
 def load_snapshot():
@@ -934,6 +1031,21 @@ def build_parser():
         help="Save only panes from this tmux session.",
     )
     save_parser.set_defaults(function=save_snapshot)
+
+    shutdown_parser = subparsers.add_parser(
+        "shutdown",
+        help="Save a snapshot and sequentially request normal Copilot process exit.",
+    )
+    shutdown_parser.add_argument(
+        "--tmux-session", help="Stop only this tmux session's Copilot panes.",
+    )
+    shutdown_parser.add_argument(
+        "--dry-run", action="store_true", help="Preview without saving or stopping.",
+    )
+    shutdown_parser.add_argument(
+        "--yes", action="store_true", help="Confirm interruption without prompting.",
+    )
+    shutdown_parser.set_defaults(function=shutdown_sessions)
 
     restore_parser = subparsers.add_parser(
         "restore",

@@ -8,6 +8,7 @@ launcher, including `agency copilot` profile and MCP arguments.
 ```bash
 copilot-tmux save
 copilot-tmux show
+copilot-tmux shutdown
 copilot-tmux restore
 ```
 
@@ -15,6 +16,9 @@ Useful options:
 
 ```bash
 copilot-tmux save --tmux-session NAME
+copilot-tmux shutdown --dry-run
+copilot-tmux shutdown --tmux-session NAME
+copilot-tmux shutdown --yes
 copilot-tmux restore --dry-run
 copilot-tmux restore --no-attach
 copilot-tmux --version
@@ -42,7 +46,7 @@ Current scope:
 - Linux and WSL
 - One Copilot session per tmux window
 - GitHub Copilot CLI, including an outer `agency copilot` launcher
-- Manual save and restore
+- Manual save, shutdown, and restore
 
 Each `save` replaces the previous snapshot, including a filtered
 `save --tmux-session NAME`. Restore after the saved tmux sessions have exited;
@@ -50,6 +54,32 @@ existing tmux session names are never overwritten. Preview recovery commands
 with `restore --dry-run`.
 An absent tmux server is treated as having no existing panes or sessions.
 Permission and other connection errors are reported instead.
+
+### Shutting down before stopping WSL
+
+Run `copilot-tmux shutdown` from a separate shell. It shows the target sessions
+and asks for confirmation, saves a fresh snapshot, then sends `SIGTERM` to each
+Copilot main process and waits for it to exit before proceeding. Copilot handles
+this signal through its normal shutdown cleanup; running work is interrupted,
+not completed. Resume the saved conversations with `copilot-tmux restore` after
+restarting WSL. In-memory tasks do not resume automatically.
+
+`--dry-run` only previews targets; it neither saves nor stops anything.
+`--yes` confirms interruption without a prompt. Like `save`, shutdown replaces
+the previous snapshot, including when filtered with `--tmux-session NAME`.
+
+Shutdown requires Linux pidfd support (a kernel feature that keeps a process
+handle tied to the original process even if its PID is reused). Targets are
+rechecked before signalling. If saving fails, nothing is stopped. If a target
+changes, signalling fails, or a process takes longer than 30 seconds to exit,
+shutdown stops with an error and does not force-kill it or stop later targets.
+Resolve the error before stopping WSL. Normal shutdown reduces abrupt-write
+risk; it is not a backup or a guarantee against storage or runtime failures.
+
+The command does not delete conversation history or kill tmux panes, windows,
+sessions, or unrelated processes. It refuses to stop the Copilot process hosting
+the command itself. Shells may remain after Copilot exits; without restarting WSL,
+existing tmux session names can still block `restore`.
 
 When a Copilot pane has non-Copilot sibling panes, restore recreates the
 Copilot window as a single pane. The sibling panes and their running commands
