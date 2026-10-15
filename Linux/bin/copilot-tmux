@@ -361,7 +361,9 @@ def active_session_id(
     if len(live_candidates) == 1:
         return next(iter(live_candidates)), "live-hold"
 
-    candidates = live_candidates or {initial_session_id}
+    candidates = live_candidates or ({initial_session_id} - {None})
+    if not candidates:
+        return None, None
     if len(candidates) == 1:
         return initial_session_id, "process"
 
@@ -397,6 +399,7 @@ def resolve_launcher(root_pid, pane_title, pane_id, processes):
             agency_candidates.append((depth, pid, argv))
         if executable == "copilot":
             # Restored panes are relaunched with --resume=<id>, not --session-id.
+            # Plain `copilot` has no ID flag; the hook or live hold supplies it.
             session_id = next(
                 (
                     value
@@ -405,19 +408,22 @@ def resolve_launcher(root_pid, pane_title, pane_id, processes):
                 ),
                 None,
             )
-            if session_id:
-                copilot_candidates.append((depth, pid, argv, session_id))
+            copilot_candidates.append((depth, pid, argv, session_id))
 
     if not copilot_candidates:
         return None
 
-    _, copilot_pid, copilot_argv, initial_session_id = min(copilot_candidates)
-    try:
-        parsed_id = uuid.UUID(initial_session_id)
-    except ValueError:
-        return None
-    if parsed_id.version != 4:
-        return None
+    _, copilot_pid, copilot_argv, initial_session_id = min(
+        copilot_candidates,
+        key=lambda candidate: candidate[:2],
+    )
+    if initial_session_id is not None:
+        try:
+            parsed_id = uuid.UUID(initial_session_id)
+        except ValueError:
+            return None
+        if parsed_id.version != 4:
+            return None
     copilot_home = pane_bound_copilot_home(
         pane_id,
         copilot_pid,
@@ -430,6 +436,8 @@ def resolve_launcher(root_pid, pane_title, pane_id, processes):
         pane_id,
         copilot_state_dir,
     )
+    if session_id is None:
+        return None
 
     if agency_candidates:
         _, launcher_pid, launcher_argv = min(agency_candidates)

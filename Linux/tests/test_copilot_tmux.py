@@ -203,6 +203,75 @@ class CopilotTmuxTests(unittest.TestCase):
         self.assertEqual(resolved["session_id"], SESSION_A)
         self.assertEqual(resolved["launcher"][-1], "--yolo")
 
+    @mock.patch.object(COPILOT_TMUX, "inuse_session_ids", return_value={SESSION_B})
+    @mock.patch.object(
+        COPILOT_TMUX,
+        "copilot_home_from_process",
+        return_value=Path("/tmp/copilot-home"),
+    )
+    @mock.patch.object(
+        COPILOT_TMUX,
+        "pane_option",
+        side_effect=lambda _pane, option: {
+            COPILOT_TMUX.TMUX_SESSION_OPTION: SESSION_B,
+            COPILOT_TMUX.TMUX_PID_OPTION: "11",
+        }.get(option),
+    )
+    def test_resolve_launcher_detects_plain_copilot_from_hook(
+        self,
+        _pane_option,
+        _home,
+        _inuse,
+    ):
+        processes = {
+            10: {"ppid": 1, "argv": ["zsh"]},
+            11: {"ppid": 10, "argv": ["copilot"]},
+        }
+
+        resolved = COPILOT_TMUX.resolve_launcher(10, "", "%1", processes)
+
+        self.assertEqual(resolved["session_id"], SESSION_B)
+        self.assertEqual(resolved["session_detection"], "session-hook")
+        self.assertIsNone(resolved["initial_session_id"])
+        self.assertEqual(resolved["launcher"], ["copilot"])
+
+    @mock.patch.object(COPILOT_TMUX, "inuse_session_ids", return_value={SESSION_B})
+    @mock.patch.object(
+        COPILOT_TMUX,
+        "copilot_home_from_process",
+        return_value=Path("/tmp/copilot-home"),
+    )
+    @mock.patch.object(COPILOT_TMUX, "pane_option", return_value=None)
+    def test_resolve_launcher_detects_plain_copilot_from_live_hold(
+        self,
+        _pane_option,
+        _home,
+        _inuse,
+    ):
+        processes = {11: {"ppid": 10, "argv": ["copilot", "--yolo"]}}
+
+        resolved = COPILOT_TMUX.resolve_launcher(11, "", "%1", processes)
+
+        self.assertEqual(resolved["session_id"], SESSION_B)
+        self.assertEqual(resolved["session_detection"], "live-hold")
+
+    @mock.patch.object(COPILOT_TMUX, "inuse_session_ids", return_value=set())
+    @mock.patch.object(
+        COPILOT_TMUX,
+        "copilot_home_from_process",
+        return_value=Path("/tmp/copilot-home"),
+    )
+    @mock.patch.object(COPILOT_TMUX, "pane_option", return_value=None)
+    def test_resolve_launcher_skips_plain_copilot_without_session(
+        self,
+        _pane_option,
+        _home,
+        _inuse,
+    ):
+        processes = {11: {"ppid": 10, "argv": ["copilot"]}}
+
+        self.assertIsNone(COPILOT_TMUX.resolve_launcher(11, "", "%1", processes))
+
     def test_version_flag_and_plain_table(self):
         output = io.StringIO()
         with redirect_stdout(output), self.assertRaises(SystemExit):
