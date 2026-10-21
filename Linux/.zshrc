@@ -160,6 +160,7 @@ set t_Co=256
 # else
 #   export EDITOR='mvim'
 # fi
+export COPILOT_EDITOR="code --wait --reuse-window"
 
 # Compilation flags
 # export ARCHFLAGS="-arch x86_64"
