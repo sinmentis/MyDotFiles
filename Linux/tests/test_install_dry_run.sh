@@ -6,10 +6,19 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TEST_ROOT="$(mktemp -d)"
 trap 'rm -rf "$TEST_ROOT"' EXIT
 
+# install_agents.sh configures only the CLIs it detects. Stub both so the test
+# is hermetic: covered on CI runners without them, and never touches the real ones.
+mkdir -p "$TEST_ROOT/bin"
+for cli in copilot claude; do
+    printf '#!/bin/sh\nexit 0\n' >"$TEST_ROOT/bin/$cli"
+    chmod +x "$TEST_ROOT/bin/$cli"
+done
+export PATH="$TEST_ROOT/bin:$PATH"
+
 HOME="$TEST_ROOT/home" USER=tester SHELL=/bin/bash \
     "$REPO_ROOT/install.sh" --profile wsl --dry-run >"$TEST_ROOT/install.log"
 
-for path in .zshrc .gitconfig .tmux.conf .copilot; do
+for path in .zshrc .gitconfig .tmux.conf .copilot .claude; do
     if [ -e "$TEST_ROOT/home/$path" ]; then
         echo "dry-run unexpectedly created $path" >&2
         exit 1
@@ -19,6 +28,8 @@ done
 grep -q -- "--dry-run" < <("$REPO_ROOT/install.sh" --help)
 grep -q "DRY-RUN" "$TEST_ROOT/install.log"
 grep -q ".copilot/extensions/tmux-status" "$TEST_ROOT/install.log"
+grep -q ".claude/statusline.sh" "$TEST_ROOT/install.log"
+grep -q "claude mcp add-json -s user playwright" "$TEST_ROOT/install.log"
 
 copilot_home="$TEST_ROOT/copilot-home"
 mkdir -p "$copilot_home/.copilot/extensions/existing-extension"

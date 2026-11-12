@@ -90,8 +90,7 @@ if have claude; then
             spec="$(jq -c --arg n "$name" '.mcpServers[$n] | del(.tools, .timeout)
                     | if .type == "local" then .type = "stdio" else . end' "$MCP_CONFIG")"
             run sh -c "claude mcp remove -s user '$name' >/dev/null 2>&1 || true"
-            run claude mcp add-json -s user "$name" "$spec" >/dev/null
-            log "  mcp: $name"
+            run claude mcp add-json -s user "$name" "$spec"
         done
     fi
 else
