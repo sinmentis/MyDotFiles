@@ -135,7 +135,7 @@ fi
 [ "$WANT_ZSH" = "1" ]     && bash "$LIB_DIR/install_zsh.sh"
 [ "$WANT_GIT" = "1" ]     && bash "$LIB_DIR/install_git.sh"
 [ "$WANT_TMUX" = "1" ]    && bash "$LIB_DIR/install_tmux.sh"
-[ "$WANT_COPILOT" = "1" ] && bash "$LIB_DIR/install_copilot.sh"
+[ "$WANT_COPILOT" = "1" ] && bash "$LIB_DIR/install_agents.sh"
 
 # Profiles and explicit auto-attach flags own this setting. A granular
 # `--zsh` reinstall preserves the existing machine-local choice.

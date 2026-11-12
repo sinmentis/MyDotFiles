@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Start the AMap (Gaode) MCP server. The API key stays machine-local:
+# $AMAP_MAPS_API_KEY, or ~/.config/amap-maps/api-key.
+
+set -euo pipefail
+
+key_file="$HOME/.config/amap-maps/api-key"
+if [ -z "${AMAP_MAPS_API_KEY:-}" ] && [ -r "$key_file" ]; then
+    AMAP_MAPS_API_KEY="$(<"$key_file")"
+fi
+if [ -z "${AMAP_MAPS_API_KEY:-}" ]; then
+    printf 'amap-mcp: set AMAP_MAPS_API_KEY or write the key to %s\n' "$key_file" >&2
+    exit 1
+fi
+export AMAP_MAPS_API_KEY
+
+exec npx --yes "@amap/amap-maps-mcp-server@${AMAP_MCP_VERSION:-0.0.8}" "$@"

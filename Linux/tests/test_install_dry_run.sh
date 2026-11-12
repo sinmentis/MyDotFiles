@@ -25,7 +25,7 @@ mkdir -p "$copilot_home/.copilot/extensions/existing-extension"
 touch "$copilot_home/.copilot/extensions/existing-extension/extension.mjs"
 printf '{}\n' >"$copilot_home/.copilot/mcp-config.json"
 HOME="$copilot_home" DOTFILES_DRY_RUN=0 \
-    bash "$REPO_ROOT/Linux/lib/install_copilot.sh" >"$TEST_ROOT/copilot.log"
+    bash "$REPO_ROOT/Linux/lib/install_agents.sh" >"$TEST_ROOT/copilot.log"
 test -L "$copilot_home/.copilot/extensions/tmux-status"
 test "$(readlink "$copilot_home/.copilot/extensions/tmux-status")" = \
     "$REPO_ROOT/Linux/copilot/extensions/tmux-status"

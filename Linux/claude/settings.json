@@ -1,0 +1,154 @@
+{
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline.sh",
+    "padding": 0
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/tmux-status.sh",
+            "timeout": 2,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/tmux-status.sh",
+            "timeout": 2,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/tmux-status.sh",
+            "timeout": 2,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/tmux-status.sh",
+            "timeout": 2,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/tmux-status.sh",
+            "timeout": 2,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/tmux-status.sh",
+            "timeout": 2,
+            "async": true
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(az:*)",
+      "Bash(base64:*)",
+      "Bash(cloudflared:*)",
+      "Bash(command:*)",
+      "Bash(gh api:*)",
+      "Bash(git config:*)",
+      "Bash(git log:*)",
+      "Bash(jq:*)",
+      "Bash(lsblk:*)",
+      "Bash(mount:*)",
+      "Bash(printf:*)",
+      "Bash(python3:*)",
+      "Bash(sed:*)",
+      "Bash(who:*)",
+      "WebFetch(domain:agents.md)",
+      "WebFetch(domain:aka.ms)",
+      "WebFetch(domain:api.frankfurter.dev)",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:code.claude.com)",
+      "WebFetch(domain:developers.cloudflare.com)",
+      "WebFetch(domain:docs.github.com)",
+      "WebFetch(domain:en.wikipedia.org)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:isync.sourceforge.io)",
+      "WebFetch(domain:notmuchmail.org)",
+      "WebFetch(domain:open.er-api.com)",
+      "WebFetch(domain:opisthokonta.net)",
+      "WebFetch(domain:penaltyblog.readthedocs.io)",
+      "WebFetch(domain:prices.azure.com)",
+      "WebFetch(domain:pypi.org)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:registry.terraform.io)",
+      "WebFetch(domain:service.mail.qq.com)",
+      "WebFetch(domain:skills.sh)",
+      "WebFetch(domain:sr.ht)",
+      "WebFetch(domain:tbbbk.com)",
+      "WebFetch(domain:vietnam.travel)",
+      "WebFetch(domain:www.anthropic.com)",
+      "WebFetch(domain:www.api-football.com)",
+      "WebFetch(domain:www.eloratings.net)",
+      "WebFetch(domain:www.football-data.org)",
+      "WebFetch(domain:www.fyxer.com)",
+      "WebFetch(domain:www.gov.uk)",
+      "WebFetch(domain:www.sanebox.com)",
+      "WebFetch(domain:www.shortwave.com)",
+      "WebFetch(domain:www.skills.sh)",
+      "WebFetch(domain:wx.mail.qq.com)",
+      "mcp__airbnb",
+      "mcp__amap-maps",
+      "mcp__azure__documentation",
+      "mcp__xiaohongshu-readonly"
+    ]
+  },
+  "extraKnownMarketplaces": {
+    "impeccable": {
+      "source": {
+        "source": "github",
+        "repo": "pbakaus/impeccable"
+      }
+    },
+    "shun-skills": {
+      "source": {
+        "source": "github",
+        "repo": "sinmentis/shun-skills"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "impeccable@impeccable": true,
+    "personal@shun-skills": true
+  }
+}

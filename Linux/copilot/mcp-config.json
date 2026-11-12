@@ -23,6 +23,44 @@
       "env": {
         "AZURE_TOKEN_CREDENTIALS": "AzureCliCredential"
       }
+    },
+    "amap-maps": {
+      "tools": [
+        "*"
+      ],
+      "type": "local",
+      "command": "amap-mcp",
+      "args": []
+    },
+    "airbnb": {
+      "tools": [
+        "airbnb_search",
+        "airbnb_listing_details"
+      ],
+      "timeout": 45000,
+      "type": "local",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@openbnb/mcp-server-airbnb@0.3.0",
+        "--ignore-robots-txt"
+      ],
+      "env": {
+        "AIRBNB_BASE_URL": "https://www.airbnb.co.nz"
+      }
+    },
+    "xiaohongshu-readonly": {
+      "tools": [
+        "check_login_status",
+        "get_login_qrcode",
+        "list_feeds",
+        "search_feeds",
+        "get_feed_detail",
+        "user_profile"
+      ],
+      "timeout": 900000,
+      "type": "http",
+      "url": "http://127.0.0.1:18060/mcp"
     }
   }
 }
