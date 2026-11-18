@@ -1,6 +1,7 @@
-import { joinSession } from "@github/copilot-sdk/extension";
+import { loadJoinSession } from "./sdk.mjs";
 import { EVENT_TYPES, StatusController, TmuxStatus } from "./status.mjs";
 
+const joinSession = await loadJoinSession();
 const session = await joinSession();
 
 if (process.env.TMUX && process.env.TMUX_PANE) {

@@ -7,6 +7,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { test } from "node:test";
+import { loadJoinSession } from "../copilot/extensions/tmux-status/sdk.mjs";
 import {
     FRAME_INTERVAL_MS,
     LEASE_SECONDS,
@@ -19,6 +20,40 @@ import {
 
 const execute = promisify(execFile);
 const event = (type, data = {}, agentId) => ({ type, data, agentId });
+
+test("SDK loader supports both current and older CLI package names", async () => {
+    const joinSession = () => {};
+    for (const available of ["@microsoft/copilot-sdk/extension", "@github/copilot-sdk/extension"]) {
+        const imports = [];
+        const load = async (specifier) => {
+            imports.push(specifier);
+            if (specifier === available) {
+                return { joinSession };
+            }
+            throw Object.assign(new Error(
+                "Cannot find package '@microsoft/copilot-sdk' imported from /extension.mjs",
+            ), { code: "ERR_MODULE_NOT_FOUND" });
+        };
+        assert.equal(await loadJoinSession(load), joinSession);
+        assert.deepEqual(imports, available.startsWith("@microsoft")
+            ? [available] : ["@microsoft/copilot-sdk/extension", available]);
+    }
+});
+
+test("SDK loader surfaces failures inside the current SDK instead of falling back", async () => {
+    for (const error of [
+        Object.assign(new Error("Cannot find package 'other-dependency' imported from /sdk.mjs"),
+            { code: "ERR_MODULE_NOT_FOUND" }),
+        new Error("SDK initialization failed"),
+    ]) {
+        const imports = [];
+        await assert.rejects(loadJoinSession(async (specifier) => {
+            imports.push(specifier);
+            throw error;
+        }), (actual) => actual === error);
+        assert.deepEqual(imports, ["@microsoft/copilot-sdk/extension"]);
+    }
+});
 
 test("running survives tool/model turns and related background work", () => {
     const tracker = new StatusTracker();
