@@ -22,3 +22,4 @@ keyring-passphrase
 __pycache__/
 *.pyc
 testResults.xml
+.playwright-mcp/

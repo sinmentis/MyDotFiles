@@ -26,10 +26,7 @@ jobs:
             install.sh \
             Linux/lib/*.sh \
             Linux/vm-prep/*.sh \
-            Linux/bin/playwright-mcp \
-            Linux/Bind_ScrollDown \
-            Linux/Bind_ScrollPress \
-            Linux/Bind_ScrollUp
+            Linux/bin/playwright-mcp
           for script in install.sh Linux/lib/*.sh Linux/vm-prep/*.sh Linux/bin/playwright-mcp; do
             bash -n "$script"
           done

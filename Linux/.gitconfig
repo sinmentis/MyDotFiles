@@ -69,6 +69,22 @@
 [color]
 	ui = auto
 
+[init]
+	defaultBranch = main
+[branch]
+	sort = -committerdate
+[fetch]
+	prune = true
+[pull]
+	rebase = true
+[rebase]
+	autoStash = true
+[push]
+	autoSetupRemote = true
+[rerere]
+	enabled = true
+	autoupdate = true
+
 [merge]
 	tool = vscode
 	conflictStyle = zdiff3
