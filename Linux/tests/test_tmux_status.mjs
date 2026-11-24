@@ -365,9 +365,10 @@ test("real tmux renders separated colored tabs while preserving indices, names, 
         client.stderr.setEncoding("utf8").on("data", (chunk) => { screen += chunk; });
         await waitFor(async () => (await tmux("list-clients", "-F", "#{client_name}")) !== "",
             "the attached test terminal");
-        const background = (color) => new RegExp(`\\x1b\\[[0-9;]*48;5;${color}(?:;[0-9;]+)?m`);
-        await waitFor(() => screen.includes(" | ") && background(236).test(screen)
-            && background(33).test(screen), "visible separators with gray and blue tab backgrounds");
+        const background = (index, rgb) => new RegExp(
+            `\\x1b\\[[0-9;]*48;(?:5;${index}|2;${rgb.join(";")})(?:;[0-9;]+)?m`);
+        await waitFor(() => screen.includes(" | ") && background(236, [48, 48, 48]).test(screen)
+            && background(33, [0, 135, 255]).test(screen), "visible separators with gray and blue tab backgrounds");
         assert.match(screen, /\d{2}-\d{2} \d{2}:\d{2}/);
         const errors = [];
         const adapter = new TmuxStatus(pane, { socketPath });
@@ -423,7 +424,7 @@ test("real tmux renders separated colored tabs while preserving indices, names, 
         await waitFor(async () => (await label()).startsWith(`${indexPrefix}\u{2705} `),
             "the unread check mark");
         assert.equal(await tmux("display-message", "-p", "-t", pane, "#{window_bell_flag}"), "1");
-        await waitFor(() => background(220).test(screen), "the yellow unread tab background");
+        await waitFor(() => background(220, [255, 215, 0]).test(screen), "the yellow unread tab background");
         await tmux("select-window", "-t", pane);
         await waitFor(async () => !(await label()).includes("\u{2705}"), "unread acknowledgement");
         await label("window-status-current-format");
