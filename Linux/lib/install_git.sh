@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 #
-# install_git.sh — git + git-delta, deploy the generic .gitconfig, and seed
-# machine-local identity and credential configuration from examples.
+# install_git.sh — git + git-delta, deploy the shared and Linux Git config, and
+# seed machine-local identity and credential configuration from examples.
 #
-# The generic .gitconfig [include]s ~/.gitconfig.local, which holds per-machine
+# Shared/git/config holds cross-platform defaults. The Linux .gitconfig adds
+# platform settings and [include]s ~/.gitconfig.local, which holds per-machine
 # defaults and credential helpers. Azure DevOps remotes additionally include
 # ~/.gitconfig-ado so work repositories can use a separate identity.
 #
@@ -20,8 +21,10 @@ source "$DOTFILES_LINUX_DIR/lib/common.sh"
 log "installing git + git-delta..."
 apt_install git git-delta
 
-# 2. Deploy generic .gitconfig.
-log "linking .gitconfig..."
+# 2. Deploy shared defaults (read by Git before ~/.gitconfig) and the
+#    Linux-specific .gitconfig.
+log "linking git config..."
+link_dotfile "$DOTFILES_LINUX_DIR/../Shared/git/config" "${XDG_CONFIG_HOME:-$HOME/.config}/git/config"
 link_dotfile "$DOTFILES_LINUX_DIR/.gitconfig" "$HOME/.gitconfig"
 
 # 3. Seed machine-local files from examples if missing (never clobber).

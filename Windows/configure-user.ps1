@@ -257,6 +257,10 @@ Copy-ManagedFile `
 Copy-ManagedFile `
     -Source (Join-Path $PSScriptRoot '.config\starship.toml') `
     -Destination (Join-Path $configRoot 'starship.toml')
+$repoRoot = Split-Path -Parent $PSScriptRoot
+Copy-ManagedFile `
+    -Source (Join-Path $repoRoot 'Shared\git\config') `
+    -Destination (Join-Path $configRoot 'git\config')
 Copy-ManagedFile `
     -Source (Join-Path $PSScriptRoot '.gitconfig') `
     -Destination (Join-Path $HOME '.gitconfig')
@@ -290,7 +294,6 @@ Copy-ManagedFile `
     )
 
 if (-not $SkipCopilotConfiguration) {
-    $repoRoot = Split-Path -Parent $PSScriptRoot
     Copy-ManagedFile `
         -Source (Join-Path $repoRoot 'Shared\copilot\copilot-instructions.md') `
         -Destination (Join-Path $HOME '.copilot\copilot-instructions.md')

@@ -1,95 +1,9 @@
-[alias]
-	co = checkout
-	cm = commit
-	sbup = submodule update --init --recursive
-	st = status
-	ft = fetch
-	pu = pull
-	lg = log --max-count=100 --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+# Linux-specific Git settings. Shared defaults live in ../Shared/git/config,
+# deployed to ~/.config/git/config, which Git reads before this file.
 
 [core]
-	autocrlf = input
 	editor = vim
 	ignorecase = false
-	pager = delta
-
-# === delta: https://dandavison.github.io/delta/ ===
-[interactive]
-	diffFilter = delta --color-only
-[pager]
-	diff = delta
-	log = delta
-	reflog = delta
-	show = delta
-	blame = delta
-[delta]
-	features = side-by-side decorations unobtrusive-line-numbers
-	navigate = true
-	dark = true
-	hyperlinks = true
-	hyperlinks-file-link-format = "vscode://file/{path}:{line}"
-	syntax-theme = gruvbox-dark
-	true-color = always
-	tabs = 4
-	max-line-length = 1024
-	line-numbers = true
-	keep-plus-minus-markers = false
-	whitespace-error-style = 22 reverse
-	blame-code-style = syntax
-	blame-format = "{author:<18} ({commit:>7}) {timestamp:^16}"
-	merge-conflict-begin-symbol = ⌃
-	merge-conflict-end-symbol = ⌄
-	merge-conflict-ours-diff-header-style = bold yellow
-	merge-conflict-theirs-diff-header-style = bold blue
-[delta "decorations"]
-	commit-decoration-style = bold yellow box ul
-	file-style = bold yellow ul
-	file-decoration-style = none
-	hunk-header-decoration-style = yellow box
-	hunk-header-style = file line-number syntax
-	file-modified-label = "modified:"
-	file-added-label = "added:"
-	file-removed-label = "removed:"
-	file-renamed-label = "renamed:"
-[delta "unobtrusive-line-numbers"]
-	line-numbers-minus-style = "#444444"
-	line-numbers-zero-style = "#444444"
-	line-numbers-plus-style = "#444444"
-	line-numbers-left-format = "{nm:>4}┊"
-	line-numbers-right-format = "{np:>4}│"
-	line-numbers-left-style = blue
-	line-numbers-right-style = blue
-
-[diff]
-	colorMoved = dimmed-zebra
-	algorithm = histogram
-	renames = copies
-	mnemonicPrefix = true
-
-[color]
-	ui = auto
-
-[init]
-	defaultBranch = main
-[branch]
-	sort = -committerdate
-[fetch]
-	prune = true
-[pull]
-	rebase = true
-[rebase]
-	autoStash = true
-[push]
-	autoSetupRemote = true
-[rerere]
-	enabled = true
-	autoupdate = true
-
-[merge]
-	tool = vscode
-	conflictStyle = zdiff3
-[mergetool "vscode"]
-	cmd = code --wait $MERGED
 
 [safe]
 	bareRepository = all

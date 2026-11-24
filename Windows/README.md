@@ -23,8 +23,16 @@ the original user context for profile files.
 - Packages listed in [`packages.psd1`](packages.psd1)
 - Modules listed in [`required-modules.psd1`](required-modules.psd1)
 - PowerShell, Git, Starship, Windows Terminal, and VS Code configuration
+- Shared Git defaults from `Shared/git/config`, copied to `~/.config/git/config`
 - Shared global Copilot instructions
 - Optional WSL platform enablement without installing a distribution
+
+Files are copied, not linked, so rerun `configure-user.ps1` after pulling
+changes:
+
+```powershell
+pwsh -NoProfile -File .\Windows\configure-user.ps1 -SkipModules -SkipExtensions
+```
 
 Useful rerun switches:
 

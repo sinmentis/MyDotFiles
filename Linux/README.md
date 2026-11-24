@@ -52,6 +52,10 @@ Edit the local files after the first run. The example Git identities are
 placeholders and must be replaced before committing. The Copilot instructions
 directory is created, but private instruction files are added manually.
 
+Git defaults shared with Windows live in `Shared/git/config`, linked to
+`~/.config/git/config`. Git reads that before `~/.gitconfig`, so Linux settings
+and `~/.gitconfig.local` override it.
+
 ## Copilot configuration
 
 `install_copilot.sh` installs:
