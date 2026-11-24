@@ -92,6 +92,8 @@ alias gitst="git st"
 alias dmesg="sudo watch -n 0.1 'dmesg | tail -n $((LINES-6))'"
 # Explicit --session-id: Copilot's /restart conflicts with Agency's default --new-session-id.
 alias a='z rp; agency copilot --profile-only lazy --no-default-mcps --session-id "$(uuidgen)" --yolo'
+# WSLENV forwards the MCP-provided extension token to Windows Node.
+alias aw='z rp; WSLENV="${WSLENV:+${WSLENV}:}PLAYWRIGHT_MCP_EXTENSION_TOKEN" agency copilot --profile lazy --no-default-mcps --session-id "$(uuidgen)" --yolo'
 
 ###################################
 # NVM
