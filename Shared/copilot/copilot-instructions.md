@@ -34,4 +34,3 @@ These are cross-repository preferences. Repository instructions define project-s
 ## Explanations for me
 
 - For unfamiliar topics, start with the big picture and why it matters before implementation details. Explain terms and acronyms when they are new in the current context, not mechanically on every turn.
-- My background is embedded systems, Android, and Linux. Use analogies to that world when they clarify unfamiliar concepts, without forcing them into routine answers.
