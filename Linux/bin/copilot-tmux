@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 HOME = Path.home()
 STATE_DIR = Path(os.environ.get("XDG_STATE_HOME", HOME / ".local/state")) / "copilot-tmux"
@@ -417,30 +417,33 @@ def resolve_launcher(root_pid, pane_title, pane_id, processes):
     if not copilot_candidates:
         return None
 
-    _, copilot_pid, copilot_argv, initial_session_id = min(
+    # An outer Copilot process can remain alive after launching the active CLI.
+    for _, copilot_pid, copilot_argv, initial_session_id in sorted(
         copilot_candidates,
         key=lambda candidate: candidate[:2],
-    )
-    if initial_session_id is not None:
-        try:
-            parsed_id = uuid.UUID(initial_session_id)
-        except ValueError:
-            return None
-        if parsed_id.version != 4:
-            return None
-    copilot_home = pane_bound_copilot_home(
-        pane_id,
-        copilot_pid,
-    ) or copilot_home_from_process(copilot_pid)
-    copilot_state_dir = copilot_home / "session-state"
-    session_id, session_detection = active_session_id(
-        copilot_pid,
-        initial_session_id,
-        pane_title,
-        pane_id,
-        copilot_state_dir,
-    )
-    if session_id is None:
+    ):
+        if initial_session_id is not None:
+            try:
+                parsed_id = uuid.UUID(initial_session_id)
+            except ValueError:
+                continue
+            if parsed_id.version != 4:
+                continue
+        copilot_home = pane_bound_copilot_home(
+            pane_id,
+            copilot_pid,
+        ) or copilot_home_from_process(copilot_pid)
+        copilot_state_dir = copilot_home / "session-state"
+        session_id, session_detection = active_session_id(
+            copilot_pid,
+            initial_session_id,
+            pane_title,
+            pane_id,
+            copilot_state_dir,
+        )
+        if session_id is not None:
+            break
+    else:
         return None
 
     if agency_candidates:

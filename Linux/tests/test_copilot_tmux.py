@@ -275,6 +275,72 @@ class CopilotTmuxTests(unittest.TestCase):
 
         self.assertIsNone(COPILOT_TMUX.resolve_launcher(11, "", "%1", processes))
 
+    @mock.patch.object(COPILOT_TMUX, "pane_option", return_value=None)
+    @mock.patch.object(
+        COPILOT_TMUX,
+        "copilot_home_from_process",
+        return_value=Path("/tmp/copilot-home"),
+    )
+    @mock.patch.object(COPILOT_TMUX, "session_activity", return_value=0)
+    @mock.patch.object(
+        COPILOT_TMUX,
+        "parse_workspace_metadata",
+        side_effect=lambda session_id, _state: {
+            "name": "Current" if session_id == SESSION_B else "Previous",
+        },
+    )
+    @mock.patch.object(
+        COPILOT_TMUX,
+        "inuse_session_ids",
+        side_effect=lambda pid, _state: {SESSION_A, SESSION_B} if pid == 13 else set(),
+    )
+    def test_resolve_launcher_finds_active_child_of_unbound_copilot(
+        self, _inuse, _metadata, _activity, _home, _pane_option,
+    ):
+        processes = {
+            10: {"ppid": 1, "argv": ["zsh"]},
+            11: {"ppid": 10, "argv": ["agency", "copilot", "--yolo"]},
+            12: {"ppid": 11, "argv": ["copilot"]},
+            13: {"ppid": 12, "argv": ["copilot", "--session-id", SESSION_A]},
+        }
+
+        resolved = COPILOT_TMUX.resolve_launcher(
+            10, "Current - GitHub Copilot", "%1", processes,
+        )
+
+        self.assertIsNotNone(resolved)
+        self.assertEqual(resolved["copilot_pid"], 13)
+        self.assertEqual(resolved["session_id"], SESSION_B)
+        self.assertEqual(resolved["session_detection"], "pane-title")
+        self.assertEqual(resolved["launcher_pid"], 11)
+        self.assertEqual(resolved["launcher_kind"], "agency")
+
+    @mock.patch.object(COPILOT_TMUX, "pane_option", return_value=None)
+    @mock.patch.object(
+        COPILOT_TMUX,
+        "copilot_home_from_process",
+        return_value=Path("/tmp/copilot-home"),
+    )
+    @mock.patch.object(
+        COPILOT_TMUX,
+        "inuse_session_ids",
+        side_effect=lambda pid, _state: {SESSION_A} if pid == 11 else {SESSION_B},
+    )
+    def test_resolve_launcher_prefers_active_parent_over_nested_copilot(
+        self, inuse, _home, _pane_option,
+    ):
+        processes = {
+            10: {"ppid": 1, "argv": ["agency", "copilot", "--yolo"]},
+            11: {"ppid": 10, "argv": ["copilot"]},
+            12: {"ppid": 11, "argv": ["copilot", "--session-id", SESSION_B]},
+        }
+
+        resolved = COPILOT_TMUX.resolve_launcher(10, "", "%1", processes)
+
+        self.assertEqual(resolved["copilot_pid"], 11)
+        self.assertEqual(resolved["session_id"], SESSION_A)
+        inuse.assert_called_once_with(11, Path("/tmp/copilot-home/session-state"))
+
     def test_version_flag_and_plain_table(self):
         output = io.StringIO()
         with redirect_stdout(output), self.assertRaises(SystemExit):
