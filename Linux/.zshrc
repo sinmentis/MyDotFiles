@@ -98,7 +98,11 @@ alias aw='z rp; WSLENV="${WSLENV:+${WSLENV}:}PLAYWRIGHT_MCP_EXTENSION_TOKEN" age
 ###################################
 # NVM
 export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
+# Put the newest installed Node on PATH now; source nvm.sh (~0.4s) only on first `nvm` use.
+_nvm_bins=("$NVM_DIR"/versions/node/*/bin(N/nOn))
+(( $#_nvm_bins )) && path=("$_nvm_bins[1]" $path)
+unset _nvm_bins
+nvm() { unset -f nvm; \. "$NVM_DIR/nvm.sh"; nvm "$@"; }
 
 [ -r /etc/zsh_command_not_found ] && source /etc/zsh_command_not_found
 
