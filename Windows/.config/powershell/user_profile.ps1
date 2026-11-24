@@ -5,16 +5,6 @@ $utf8NoBom = [Text.UTF8Encoding]::new($false)
 [Console]::OutputEncoding = $utf8NoBom
 $OutputEncoding = $utf8NoBom
 
-$modules = @('PSReadLine', 'PSFzf', 'Terminal-Icons', 'posh-git')
-foreach ($module in $modules) {
-    if (Get-Module -ListAvailable -Name $module) {
-        Import-Module -Name $module
-    }
-    else {
-        Write-Warning "PowerShell module is not installed: $module"
-    }
-}
-
 $interactiveConsole = (
     $Host.Name -eq 'ConsoleHost' -and
     $Host.UI.SupportsVirtualTerminal -and
@@ -22,7 +12,56 @@ $interactiveConsole = (
     -not [Console]::IsOutputRedirected
 )
 
-if ($interactiveConsole -and (Get-Module -Name PSReadLine)) {
+# Each of these modules adds about a second to startup, so load them after the
+# first prompt is shown. Starship already renders Git status, replacing posh-git.
+if ($interactiveConsole) {
+    $null = Register-EngineEvent -SourceIdentifier PowerShell.OnIdle -MaxTriggerCount 1 -Action {
+        foreach ($module in @('Terminal-Icons', 'PSFzf')) {
+            if (Get-Module -ListAvailable -Name $module) {
+                Import-Module -Name $module -Global
+            }
+            else {
+                Write-Warning "PowerShell module is not installed: $module"
+            }
+        }
+        if (Get-Command Set-PsFzfOption -ErrorAction SilentlyContinue) {
+            Set-PsFzfOption `
+                -PSReadlineChordProvider 'Ctrl+f' `
+                -PSReadlineChordReverseHistory 'Ctrl+r'
+        }
+    }
+}
+
+# Cache shell init scripts and regenerate them when the tool is updated.
+function Get-CachedInitScript {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Command,
+
+        [Parameter(Mandatory)]
+        [scriptblock]$Generate
+    )
+
+    $executable = Get-Command $Command -CommandType Application -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+    if (-not $executable) {
+        Write-Warning "$Command is not installed."
+        return $null
+    }
+
+    $cache = Join-Path $env:LOCALAPPDATA "MyDotFiles\$Command-init.ps1"
+    if (
+        -not (Test-Path -LiteralPath $cache) -or
+        (Get-Item -LiteralPath $cache).LastWriteTimeUtc -lt
+            (Get-Item -LiteralPath $executable.Source).LastWriteTimeUtc
+    ) {
+        New-Item -ItemType Directory -Path (Split-Path -Parent $cache) -Force | Out-Null
+        [IO.File]::WriteAllText($cache, (& $Generate | Out-String), $utf8NoBom)
+    }
+    return $cache
+}
+
+if ($interactiveConsole -and (Get-Command Set-PSReadLineOption -ErrorAction SilentlyContinue)) {
     Set-PSReadLineOption -EditMode Emacs
     Set-PSReadLineOption -BellStyle None
     Set-PSReadLineOption -PredictionSource History
@@ -45,26 +84,16 @@ if ($interactiveConsole -and (Get-Module -Name PSReadLine)) {
     Set-PSReadLineKeyHandler -Chord 'Ctrl+LeftArrow' -Function BackwardWord
 }
 
-if ($interactiveConsole -and (Get-Command Set-PsFzfOption -ErrorAction SilentlyContinue)) {
-    Set-PsFzfOption `
-        -PSReadlineChordProvider 'Ctrl+f' `
-        -PSReadlineChordReverseHistory 'Ctrl+r'
-}
-
 if ($interactiveConsole) {
-    if (Get-Command starship -ErrorAction SilentlyContinue) {
-        Invoke-Expression (& starship init powershell)
+    $starshipInit = Get-CachedInitScript -Command starship -Generate {
+        & starship init powershell --print-full-init
     }
-    else {
-        Write-Warning 'starship is not installed.'
-    }
+    if ($starshipInit) { . $starshipInit }
 
-    if (Get-Command zoxide -ErrorAction SilentlyContinue) {
-        Invoke-Expression (& { zoxide init powershell | Out-String })
+    $zoxideInit = Get-CachedInitScript -Command zoxide -Generate {
+        & zoxide init powershell
     }
-    else {
-        Write-Warning 'zoxide is not installed.'
-    }
+    if ($zoxideInit) { . $zoxideInit }
 }
 
 function ll {
