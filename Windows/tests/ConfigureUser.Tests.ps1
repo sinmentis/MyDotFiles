@@ -59,6 +59,15 @@ Describe 'Merge-Hashtable' {
 
         $target.actions.Count | Should -Be 1
     }
+
+    It 'replaces scalar lists instead of appending duplicates' {
+        $target = [ordered]@{ bellStyle = @('window', 'taskbar') }
+        $overlay = [ordered]@{ bellStyle = @('window', 'taskbar') }
+
+        Merge-Hashtable -Target $target -Overlay $overlay
+
+        $target.bellStyle | Should -Be @('window', 'taskbar')
+    }
 }
 
 Describe 'Copy-ManagedFile' {

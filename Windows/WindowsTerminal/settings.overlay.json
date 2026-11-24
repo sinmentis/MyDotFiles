@@ -20,6 +20,10 @@
   ],
   "profiles": {
     "defaults": {
+      "bellStyle": [
+        "window",
+        "taskbar"
+      ],
       "font": {
         "face": "JetBrainsMono NFM"
       },

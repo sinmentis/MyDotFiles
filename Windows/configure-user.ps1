@@ -185,6 +185,10 @@ function Merge-ObjectArray {
 
     foreach ($item in $Overlay) {
         $identity = Get-ArrayItemIdentity -Item $item
+        if (-not $identity -and $item -isnot [System.Collections.IDictionary]) {
+            # Scalar lists such as bellStyle are values, so the overlay replaces them.
+            return @($Overlay)
+        }
         $existingIndex = -1
         if ($identity) {
             for ($index = 0; $index -lt $result.Count; $index++) {
